@@ -548,6 +548,7 @@ static struct {
 	{ "help",	cmd_mainmenu },
 	{ "?o",		cmd_opsmenu },
 	{ "?t",		cmd_testmenu },
+    { "dth",    cmd_dth      },
 
 	/* operations */
 	{ "s",		cmd_shell },
