@@ -520,6 +520,20 @@ cmd_mainmenu(int n, char **a)
 	return 0;
 }
 
+//A0 ADDED!!!!!!///
+static
+int
+cmd_dth(int n, char **a)
+{
+    (void)n;
+    (void)a;
+    
+    dbflags = DB_THREADS;
+    
+    return 0;
+}
+
+
 ////////////////////////////////////////
 //
 // Command table.
