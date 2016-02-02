@@ -31,7 +31,7 @@ struct VehiclesL
 }
 
 static struct lock *TempLock;
-static struct cv *north, *south, *west, *east;
+static struct cv *Nor, *Sou, *We, *Ea;
 static struct VehiclesL *v;
 static struct Direction *intersection;
 
@@ -54,10 +54,10 @@ intersection_sync_init(void)
         panic("could not create intersection semaphore");
     }
     
-    north = cv_create("CV_N");
-    south = cv_create("CV_S");
-    west = cv_create("CV_W");
-    east = cv_create("CV_E");
+    Nor = cv_create("CV_N");
+    Sou = cv_create("CV_S");
+    We = cv_create("CV_W");
+    Ea = cv_create("CV_E");
 }
 
 /* 
@@ -74,10 +74,10 @@ intersection_sync_cleanup(void)
     KASSERT(intersection != NULL);
     KASSERT(TempLock != NULL);
         
-    cv_destroy(north);
-    cv_destroy(south);
-    cv_destroy(west);
-    cv_destroy(east);
+    cv_destroy(Nor);
+    cv_destroy(Sou);
+    cv_destroy(We);
+    cv_destroy(Ea);
     
     lock_destroy(TempLock);
 
@@ -127,14 +127,15 @@ intersection_before_entry(Direction origin, Direction destination)
     lock_aquire(TempLock);
     
     Direction OppDest;
-    if(destination == 'N'){
-        OppDest = 'S';
-    } else if(destination == 'S'){
-        OppDest = 'N';
-    } else if(destination == 'W'){
-        OppDest = 'E';
+    
+    if(destination == north){
+        OppDest = south;
+    } else if(destination == south){
+        OppDest = north;
+    } else if(destination == west){
+        OppDest = east;
     } else {
-        OppDest = 'W';
+        OppDest = west;
     }
     
     bool R1 = true; // entered from the same direction
@@ -175,14 +176,14 @@ intersection_before_entry(Direction origin, Direction destination)
     }
 
     while ((R1 != true) || (R2 != true) || (R3 != true)) {
-        if(origin == 'N'){
-            cv_wait(north, TempLock);
-        } else if(origin == 'S'){
-            cv_wait(south, TempLock);
-        } else if(origin == 'W'){
-            cv_wait(west, TempLock);
+        if(origin == north){
+            cv_wait(Nor, TempLock);
+        } else if(origin == south){
+            cv_wait(Sou, TempLock);
+        } else if(origin == west){
+            cv_wait(We, TempLock);
         } else{
-            cv_wait(east, TempLock);
+            cv_wait(Ea, TempLock);
         }
     }
     
@@ -226,25 +227,25 @@ intersection_after_exit(Direction origin, Direction destination)
         v = v->next;
     }
     
-    if(origin == 'N'){
-        cv_broadcast(north, TempLock);
-    } else if(origin == 'S'){
-        cv_broadcast(south, TempLock);
-    } else if(origin == 'W'){
-        cv_broadcast(west, TempLock);
+    if(origin == north){
+        cv_broadcast(Nor, TempLock);
+    } else if(origin == south){
+        cv_broadcast(Sou, TempLock);
+    } else if(origin == west){
+        cv_broadcast(We, TempLock);
     } else{
-        cv_broadcast(east, TempLock);
+        cv_broadcast(Ea, TempLock);
     }
     
     if(v == NULL){
-        if(origin == 'N'){
-            cv_broadcast(north, TempLock);
-        } else if(origin == 'S'){
-            cv_broadcast(south, TempLock);
-        } else if(origin == 'W'){
-            cv_broadcast(west, TempLock);
+        if(origin == north){
+            cv_broadcast(Nor, TempLock);
+        } else if(origin == south){
+            cv_broadcast(Sou, TempLock);
+        } else if(origin == west){
+            cv_broadcast(We, TempLock);
         } else{
-            cv_broadcast(east, TempLock);
+            cv_broadcast(Ea, TempLock);
         }
     }
     
