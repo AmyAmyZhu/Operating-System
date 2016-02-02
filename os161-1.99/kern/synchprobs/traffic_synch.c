@@ -35,7 +35,6 @@ static struct cv *Sou;
 static struct cv *We;
 static struct cv *Ea;
 static struct VehiclesList v[12];
-static struct Direction intersection[4];
 
 /*
  * The simulation driver will call this function once before starting
@@ -49,11 +48,6 @@ intersection_sync_init(void)
 {
   /* replace this default implementation with your own implementation */
     TempLock = lock_create("TempLock");
-    
-    intersection[0] = north;
-    intersection[0] = east;
-    intersection[0] = west;
-    intersection[0] = south;
     
     for(int i = 0; i < 12; i++){
         v[i].num = 0;
@@ -87,10 +81,7 @@ intersection_sync_init(void)
     v[11].origin = west;
     v[11].destination = south;
     
-    if (intersection == NULL) {
-        panic("could not create intersection semaphore");
-    }
-    
+
     Nor = cv_create("CV_N");
     Sou = cv_create("CV_S");
     We = cv_create("CV_W");
@@ -108,7 +99,6 @@ void
 intersection_sync_cleanup(void)
 {
   /* replace this default implementation with your own implementation */
-    KASSERT(intersection != NULL);
     KASSERT(TempLock != NULL);
         
     cv_destroy(Nor);
@@ -118,7 +108,6 @@ intersection_sync_cleanup(void)
     
     lock_destroy(TempLock);
     
-    kfree(intersection);
     kfree(v);
 }
 
@@ -277,8 +266,7 @@ intersection_after_exit(Direction origin, Direction destination)
     /* replace this default implementation with your own implementation */
     (void)origin;  /* avoid compiler complaint about unused parameter */
     (void)destination; /* avoid compiler complaint about unused parameter */
-    KASSERT(intersection != NULL);
-    lock_aquire(TempLock);
+    lock_acquire(TempLock);
     
     if(origin == north){
         if(destination == east){
