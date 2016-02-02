@@ -143,7 +143,7 @@ intersection_before_entry(Direction origin, Direction destination)
     (void)destination; /* avoid compiler complaint about unused parameter */
     
     KASSERT(TempLock != NULL);
-    lock_aquire(TempLock);
+    lock_acquire(TempLock);
     
     Direction OppDest;
     
@@ -162,14 +162,14 @@ intersection_before_entry(Direction origin, Direction destination)
     bool R3 = false; // two cars different destination, at least one is right-turn
     
     for(int i = 0; i < 12; i++){
-        if((v[i].origin != origin) && (v[i].origin != NULL)){
+        if(v[i].origin != origin){
             R1 = false;
             break;
         }
     }
     
     for(int i = 0; i < 12; i++){
-        if((v[i].destination != OppDest) && (v[i].destination != NULL)){
+        if(v[i].destination != OppDest){
             R2 = false;
             break;
         }
