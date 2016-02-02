@@ -136,66 +136,73 @@ intersection_before_entry(Direction origin, Direction destination)
     KASSERT(TempLock != NULL);
     lock_acquire(TempLock);
     
-    Direction OppDest;
-    
-    if(destination == north){
-        OppDest = south;
-    } else if(destination == south){
-        OppDest = north;
-    } else if(destination == west){
-        OppDest = east;
-    } else {
-        OppDest = west;
-    }
-    
     bool R1 = true; // entered from the same direction
     bool R2 = true; // going in opposite direction
     bool R3 = false; // two cars different destination, at least one is right-turn
     
-    for(int i = 0; i < 12; i++){
-        if(v[i].origin != origin){
+    
+    // R1
+    if(origin == north){
+        if((v[0].num == 0) && (v[1].num == 0) && (v[2].num == 0)){
             R1 = false;
-            break;
         }
-        if(v[i].destination != OppDest){
-            R2 = false;
-            break;
+    } else if(origin == east){
+        if((v[3].num == 0) && (v[4].num == 0) && (v[5].num == 0)){
+            R1 = false;
         }
-        if((v[i].origin == north) && (v[i].destination == west)){
-            R3 = true;
-            for(int j = i+1; j < 12; j++){
-                if(v[j].destination == west){
-                    R3 = false;
-                    break;
-                }
-            }
-        } else if((v[i].origin == south) && (v[i].destination == east)){
-            R3 = true;
-            for(int j = i+1; j < 12; j++){
-                if(v[j].destination == east){
-                    R3 = false;
-                    break;
-                }
-            }
-        } else if((v[i].origin == east) && (v[i].destination == north)){
-            R3 = true;
-            for(int j = i+1; j < 12; j++){
-                if(v[j].destination == north){
-                    R3 = false;
-                    break;
-                }
-            }
-        } else if((v[i].origin == west) && (v[i].destination == south)){
-            R3 = true;
-            for(int j = i+1; j < 12; j++){
-                if(v[j].destination == south){
-                    R3 = false;
-                    break;
-                }
-            }
+    } else if(origin == south){
+        if((v[6].num == 0) && (v[7].num == 0) && (v[8].num == 0)){
+            R1 = false;
+        }
+    } else if(origin == west){
+        if((v[0].num == 9) && (v[10].num == 0) && (v[11].num == 0)){
+            R1 = false;
         }
     }
     
+    // R2
+    if(destination == north){
+        if((v[1].num == 0) && (v[5].num == 0) && (v[11].num == 0)){ // south
+            R2 = false;
+        }
+    } else if(destination == south){
+        if((v[3].num == 0) && (v[7].num == 0) && (v[9].num == 0)){ // north
+            R2 = false;
+        }
+    } else if(destination == west){
+        if((v[0].num == 0) && (v[6].num == 0) && (v[10].num == 0)){ // east
+            R2 = false;
+        }
+    } else if(destination == east){
+        if((v[2].num == 0) && (v[4].num == 0) && (v[8].num == 0)){ // west
+            R2 = false;
+        }
+    }
+    
+    // R3
+    if((origin == north) && (destination == west)){
+        R3 = true;
+        if((v[2].num == 0) && (v[4].num == 0) && (v[8].num == 0)) {
+            R3 = false;
+        }
+    } else if((origin == south) && (destination == east)){
+        R3 = true;
+        if((v[0].num == 0) && (v[6].num == 0) && (v[10].num == 0)) {
+            R3 = false;
+        }
+    } else if((origin == east) && (destination == north)){
+        R3 = true;
+        if((v[3].num == 0) && (v[7].num == 0) && (v[9].num == 0)) {
+            R3 = false;
+        }
+    } else if((origin == west) && (destination == south)){
+        R3 = true;
+        if((v[1].num == 0) && (v[5].num == 0) && (v[11].num == 0)) {
+            R3 = false;
+        }
+    }
+    
+    // check
     while ((R1 != true) || (R2 != true) || (R3 != true)) {
         if(origin == north){
             cv_wait(Nor, TempLock);
@@ -208,6 +215,7 @@ intersection_before_entry(Direction origin, Direction destination)
         }
     }
 
+    // add car
     if(origin == north){
         if(destination == east){
             (v[0].num)++;
@@ -298,26 +306,10 @@ intersection_after_exit(Direction origin, Direction destination)
         }
     }
     
-    /*if((origin == north) && (v != NULL)) {
-        cv_broadcast(Nor, TempLock);
-    } else if((origin == south) && (v != NULL)) {
-        cv_broadcast(Sou, TempLock);
-    } else if((origin == west) && (v != NULL)) {
-        cv_broadcast(We, TempLock);
-    } else if((origin == east) && (v != NULL)) {
-        cv_broadcast(Ea, TempLock);
-    }
-    */
-        if((origin == north) && (v[0].num == 0) && (v[1].num == 0) && (v[2].num == 0)){
-            cv_broadcast(Nor, TempLock);
-        } else if(origin == south){
-            cv_broadcast(Sou, TempLock);
-        } else if(origin == west){
-            cv_broadcast(We, TempLock);
-        } else{
-            cv_broadcast(Ea, TempLock);
-        }
-    //}
+    cv_broadcast(Nor, TempLock);
+    cv_broadcast(Sou, TempLock);
+    cv_broadcast(Ea, TempLock);
+    cv_broadcast(We, TempLock);
     
     lock_release(TempLock);
 }
