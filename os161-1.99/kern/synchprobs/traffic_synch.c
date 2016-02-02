@@ -31,7 +31,7 @@ struct VehiclesList
 
 static struct lock *TempLock;
 static struct cv *Nor, *Sou, *We, *Ea;
-static struct VehiclesList *v;
+static struct VehiclesList v[12];
 static struct Direction *intersection;
 
 /*
@@ -47,9 +47,8 @@ intersection_sync_init(void)
   /* replace this default implementation with your own implementation */
     TempLock = lock_create("TempLock");
     
-    intersection = {'N', 'E', 'W', 'S'};
+    intersection = {north, east, west, south};
     
-    v = kmalloc(12 * sizeof(VehiclesList));
     for(int i = 0; i < 12; i++){
         v[i].num = 0;
     }
@@ -220,35 +219,35 @@ intersection_before_entry(Direction origin, Direction destination)
 
     if(origin == north){
         if(destination == east){
-            (v[0]->num)++;
+            (v[0].num)++;
         }else if(destination == south){
-            (v[1]->num)++;
+            (v[1].num)++;
         }else if(destination == west){
-            (v[2]->num)++;
+            (v[2].num)++;
         }
     } else if(origin == east){
         if(destination == north){
-            (v[3]->num)++;
+            (v[3].num)++;
         }else if(destination == west){
-            (v[4]->num)++;
+            (v[4].num)++;
         }else if(destination == south){
-            (v[5]->num)++;
+            (v[5].num)++;
         }
     } else if(origin == south){
         if(destination == east){
-            (v[6]->num)++;
+            (v[6].num)++;
         }else if(destination == north){
-            (v[7]->num)++;
+            (v[7].num)++;
         }else if(destination == west){
-            (v[8]->num)++;
+            (v[8].num)++;
         }
     } else if(origin == west){
         if(destination == north){
-            (v[9]->num)++;
+            (v[9].num)++;
         }else if(destination == east){
-            (v[10]->num)++;
+            (v[10].num)++;
         }else if(destination == south){
-            (v[11]->num)++;
+            (v[11].num)++;
         }
     }
     
@@ -277,35 +276,35 @@ intersection_after_exit(Direction origin, Direction destination)
     
     if(origin == north){
         if(destination == east){
-            (v[0]->num)--;
+            (v[0].num)--;
         }else if(destination == south){
-            (v[1]->num)--;
+            (v[1].num)--;
         }else if(destination == west){
-            (v[2]->num)--;
+            (v[2].num)--;
         }
     } else if(origin == east){
         if(destination == north){
-            (v[3]->num)--;
+            (v[3].num)--;
         }else if(destination == west){
-            (v[4]->num)--;
+            (v[4].num)--;
         }else if(destination == south){
-            (v[5]->num)--;
+            (v[5].num)--;
         }
     } else if(origin == south){
         if(destination == east){
-            (v[6]->num)--;
+            (v[6].num)--;
         }else if(destination == north){
-            (v[7]->num)--;
+            (v[7].num)--;
         }else if(destination == west){
-            (v[8]->num)--;
+            (v[8].num)--;
         }
     } else if(origin == west){
         if(destination == north){
-            (v[9]->num)--;
+            (v[9].num)--;
         }else if(destination == east){
-            (v[10]->num)--;
+            (v[10].num)--;
         }else if(destination == south){
-            (v[11]->num)--;
+            (v[11].num)--;
         }
     }
     
