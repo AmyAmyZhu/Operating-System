@@ -22,17 +22,16 @@
  * replace this with declarations of any synchronization and other variables you need here
  */
 
-// this structure is different from traffic, this is a linked list
-struct VehiclesL
+struct VehiclesList
 {
+    int num;
     Direction origin;
     Direction destination;
-    struct VehiclesL *next;
 }
 
 static struct lock *TempLock;
 static struct cv *Nor, *Sou, *We, *Ea;
-static struct VehiclesL *v;
+static struct VehiclesList *v;
 static struct Direction *intersection;
 
 /*
@@ -49,6 +48,39 @@ intersection_sync_init(void)
     TempLock = lock_create("TempLock");
     
     intersection = {'N', 'E', 'W', 'S'};
+    
+    v = kmalloc(12 * sizeof(VehiclesList));
+    for(int i = 0; i < 12; i++){
+        v[i].num = 0;
+    }
+    
+    v[0].origin = north;
+    v[0].destination = east;
+    v[1].origin = north;
+    v[1].destination = south;
+    v[2].origin = north;
+    v[2].destination = west;
+
+    v[3].origin = east;
+    v[3].destination = north;
+    v[4].origin = east;
+    v[4].destination = west;
+    v[5].origin = east;
+    v[5].destination = south;
+    
+    v[6].origin = south;
+    v[6].destination = east;
+    v[7].origin = south;
+    v[7].destination = north;
+    v[8].origin = south;
+    v[8].destination = west;
+    
+    v[9].origin = west;
+    v[9].destination = north;
+    v[10].origin = west;
+    v[10].destination = east;
+    v[11].origin = west;
+    v[11].destination = south;
     
     if (intersection == NULL) {
         panic("could not create intersection semaphore");
@@ -80,28 +112,9 @@ intersection_sync_cleanup(void)
     cv_destroy(Ea);
     
     lock_destroy(TempLock);
-
-    if(intersection != NULL){
-        kfree( (void *) intersection);
-        intersection = NULL;
-    }
     
-    if(v != NULL){
-        kfree( (void *) v);
-        v = NULL;
-    }
-}
-
-// helper function to deep copy a linked list of v
-
-void copy(VehiclesL *x, VehiclesL* &copy){
-    while (x != NULL) {
-        VehiclesL *copy = new VehiclesL;
-        copy->origin = x->origin;
-        copy->destination = x->destination;
-        copy->next = x->next;
-        x = x->next;
-    }
+    kfree(intersection);
+    kfree(v);
 }
 
 /*
@@ -123,6 +136,7 @@ intersection_before_entry(Direction origin, Direction destination)
   /* replace this default implementation with your own implementation */
     (void)origin;  /* avoid compiler complaint about unused parameter */
     (void)destination; /* avoid compiler complaint about unused parameter */
+    
     KASSERT(TempLock != NULL);
     lock_aquire(TempLock);
     
@@ -140,39 +154,56 @@ intersection_before_entry(Direction origin, Direction destination)
     
     bool R1 = true; // entered from the same direction
     bool R2 = true; // going in opposite direction
-    bool R3 = true; // two cars different destination, at least one is right-turn
+    bool R3 = false; // two cars different destination, at least one is right-turn
     
-    VehiclesL *c1, *c2, *c3, *c4;
-    copy(v, c1);
-    copy(v, c2);
-    copy(v, c3);
-    copy(v, c4);
-    
-    while(c1 != NULL){ // R1
-        if(c1->origin != origin){
+    for(int i = 0; i < 12; i++){
+        if((v[i].origin != origin) && (v[i].origin != NULL)){
             R1 = false;
             break;
         }
-        c1 = c1->next;
     }
     
-    while(c2 != NULL){ // R2
-        if(c2->destination != OppDest){
+    for(int i = 0; i < 12; i++){
+        if((v[i].destination != OppDest) && (v[i].destination != NULL)){
             R2 = false;
             break;
         }
-        c2 = c2->next;
     }
     
-    while(c3 != NULL){ // R3
-        while(c4 != NULL){
-            if(c3->destination != c4->destination){
-                R3 = false;
-                break;
+    for(int i = 0; i < 12; i++){
+        if((v[i].origin == north) && (v[i].destination == west)){
+            R3 = true;
+            for(int j = i+1; j < 12; j++){
+                if(v[j].destination == west){
+                    R3 = false;
+                    break;
+                }
             }
-            c4 = c4->next;
+        } else if((v[i].origin == south) && (v[i].destination == east)){
+            R3 = true;
+            for(int j = i+1; j < 12; j++){
+                if(v[j].destination == east){
+                    R3 = false;
+                    break;
+                }
+            }
+        } else if((v[i].origin == east) && (v[i].destination == north)){
+            R3 = true;
+            for(int j = i+1; j < 12; j++){
+                if(v[j].destination == north){
+                    R3 = false;
+                    break;
+                }
+            }
+        } else if((v[i].origin == west) && (v[i].destination == south)){
+            R3 = true;
+            for(int j = i+1; j < 12; j++){
+                if(v[j].destination == south){
+                    R3 = false;
+                    break;
+                }
+            }
         }
-        c3 = c3->next;
     }
 
     while ((R1 != true) || (R2 != true) || (R3 != true)) {
@@ -186,9 +217,40 @@ intersection_before_entry(Direction origin, Direction destination)
             cv_wait(Ea, TempLock);
         }
     }
-    
-    v->next.origin = origin;
-    v->next.destination = destination;
+
+    if(origin == north){
+        if(destination == east){
+            (v[0]->num)++;
+        }else if(destination == south){
+            (v[1]->num)++;
+        }else if(destination == west){
+            (v[2]->num)++;
+        }
+    } else if(origin == east){
+        if(destination == north){
+            (v[3]->num)++;
+        }else if(destination == west){
+            (v[4]->num)++;
+        }else if(destination == south){
+            (v[5]->num)++;
+        }
+    } else if(origin == south){
+        if(destination == east){
+            (v[6]->num)++;
+        }else if(destination == north){
+            (v[7]->num)++;
+        }else if(destination == west){
+            (v[8]->num)++;
+        }
+    } else if(origin == west){
+        if(destination == north){
+            (v[9]->num)++;
+        }else if(destination == east){
+            (v[10]->num)++;
+        }else if(destination == south){
+            (v[11]->num)++;
+        }
+    }
     
     lock_release(TempLock);
 }
@@ -212,32 +274,52 @@ intersection_after_exit(Direction origin, Direction destination)
     (void)destination; /* avoid compiler complaint about unused parameter */
     KASSERT(intersection != NULL);
     lock_aquire(TempLock);
-    while(v != NULL){
-        if((v->origin == origin) && (v->destination == destination)){
-            if(v->next == NULL){
-                v->origin = NULL;
-                v->destination = NULL;
-                v->next = NULL;
-            } else {
-                v->origin = v->next->origin;
-                v->destination = v->next->destination;
-                v->next = v->next->next;
-            }
-        }
-        v = v->next;
-    }
     
     if(origin == north){
-        cv_broadcast(Nor, TempLock);
+        if(destination == east){
+            (v[0]->num)--;
+        }else if(destination == south){
+            (v[1]->num)--;
+        }else if(destination == west){
+            (v[2]->num)--;
+        }
+    } else if(origin == east){
+        if(destination == north){
+            (v[3]->num)--;
+        }else if(destination == west){
+            (v[4]->num)--;
+        }else if(destination == south){
+            (v[5]->num)--;
+        }
     } else if(origin == south){
-        cv_broadcast(Sou, TempLock);
+        if(destination == east){
+            (v[6]->num)--;
+        }else if(destination == north){
+            (v[7]->num)--;
+        }else if(destination == west){
+            (v[8]->num)--;
+        }
     } else if(origin == west){
-        cv_broadcast(We, TempLock);
-    } else{
-        cv_broadcast(Ea, TempLock);
+        if(destination == north){
+            (v[9]->num)--;
+        }else if(destination == east){
+            (v[10]->num)--;
+        }else if(destination == south){
+            (v[11]->num)--;
+        }
     }
     
-    if(v == NULL){
+    /*if((origin == north) && (v != NULL)) {
+        cv_broadcast(Nor, TempLock);
+    } else if((origin == south) && (v != NULL)) {
+        cv_broadcast(Sou, TempLock);
+    } else if((origin == west) && (v != NULL)) {
+        cv_broadcast(We, TempLock);
+    } else if((origin == east) && (v != NULL)) {
+        cv_broadcast(Ea, TempLock);
+    }
+    */
+    //if(v == NULL){
         if(origin == north){
             cv_broadcast(Nor, TempLock);
         } else if(origin == south){
@@ -247,7 +329,7 @@ intersection_after_exit(Direction origin, Direction destination)
         } else{
             cv_broadcast(Ea, TempLock);
         }
-    }
+    //}
     
     lock_release(TempLock);
 }
