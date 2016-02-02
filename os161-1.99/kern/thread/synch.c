@@ -174,6 +174,7 @@ lock_create(const char *name)
     
         /* similar to semaphore. lk_state has two states: locked(1) or not(0); initilize to 0;*/
         spinlock_init(&lock->lk_lock);
+        lock->lk_holder = NULL;
         lock->lk_state = false;
     
         return lock;
@@ -202,6 +203,7 @@ lock_acquire(struct lock *lock)
         KASSERT(curthread->t_in_interrupt == false);
     
         spinlock_acquire(&lock->lk_lock);
+    
         while (lock->lk_state) {
             wchan_lock(lock->lk_wchan);
             spinlock_release(&lock->lk_lock);
@@ -209,9 +211,7 @@ lock_acquire(struct lock *lock)
             spinlock_acquire(&lock->lk_lock);
         }
     
-        KASSERT(lock->lk_state == false);
         lock->lk_state = true;
-    
         lock->lk_holder = curthread;
         spinlock_release(&lock->lk_lock);
         //(void)lock;
@@ -229,9 +229,7 @@ lock_release(struct lock *lock)
         lock->lk_state = false;
         lock->lk_holder = NULL;
 
-        KASSERT(lock->lk_state = false);
         wchan_wakeone(lock->lk_wchan);
-    
         spinlock_release(&lock->lk_lock);
         //(void)lock;  // suppress warning until code gets written
 }
@@ -241,11 +239,13 @@ lock_do_i_hold(struct lock *lock)
 {
         KASSERT(lock != NULL);
         KASSERT(curthread != NULL);
-        bool check = false;
     
         spinlock_acquire(&lock->lk_lock);
-        if(lock->lk_holder == curthread){
+        bool check;
+        if (lock->lk_holder == curthread) {
             check = true;
+        }else{
+            check = false;
         }
         spinlock_release(&lock->lk_lock);
     
