@@ -108,7 +108,9 @@ intersection_sync_cleanup(void)
     
     lock_destroy(TempLock);
     
-    kfree(v);
+    for(int i = 0; i < 12; i++){
+        v[i].num = 0;
+    }
 }
 
 /*
@@ -155,16 +157,10 @@ intersection_before_entry(Direction origin, Direction destination)
             R1 = false;
             break;
         }
-    }
-    
-    for(int i = 0; i < 12; i++){
         if(v[i].destination != OppDest){
             R2 = false;
             break;
         }
-    }
-    
-    for(int i = 0; i < 12; i++){
         if((v[i].origin == north) && (v[i].destination == west)){
             R3 = true;
             for(int j = i+1; j < 12; j++){
@@ -199,7 +195,7 @@ intersection_before_entry(Direction origin, Direction destination)
             }
         }
     }
-
+    
     while ((R1 != true) || (R2 != true) || (R3 != true)) {
         if(origin == north){
             cv_wait(Nor, TempLock);
@@ -312,8 +308,7 @@ intersection_after_exit(Direction origin, Direction destination)
         cv_broadcast(Ea, TempLock);
     }
     */
-    //if(v == NULL){
-        if(origin == north){
+        if((origin == north) && (v[0].num == 0) && (v[1].num == 0) && (v[2].num == 0)){
             cv_broadcast(Nor, TempLock);
         } else if(origin == south){
             cv_broadcast(Sou, TempLock);
