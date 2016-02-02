@@ -139,7 +139,7 @@ intersection_before_entry(Direction origin, Direction destination)
     bool R1 = true; // entered from the same direction
     bool R2 = true; // going in opposite direction
     bool R3 = false; // two cars different destination, at least one is right-turn
-    
+    bool ifEmpty = true; // if there are no cars
     
     // R1
     if(origin == north){
@@ -202,8 +202,15 @@ intersection_before_entry(Direction origin, Direction destination)
         }
     }
     
+    // empty
+    for(int i = 0; i < 12; i++){
+        if(v[i].num != 0){
+            ifEmpty = false;
+        }
+    }
+    
     // check
-    while ((R1 != true) || (R2 != true) || (R3 != true)) {
+    while ((R1 != true) || (R2 != true) || (R3 != true) || (ifEmpty != true)) {
         if(origin == north){
             cv_wait(Nor, TempLock);
         } else if(origin == south){
