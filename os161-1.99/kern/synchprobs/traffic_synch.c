@@ -27,7 +27,7 @@ struct VehiclesList
     int num;
     Direction origin;
     Direction destination;
-}
+};
 
 static struct lock *TempLock;
 static struct cv *Nor;
