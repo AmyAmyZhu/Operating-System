@@ -202,7 +202,7 @@ lock_acquire(struct lock *lock)
         KASSERT(curthread->t_in_interrupt == false);
     
         spinlock_acquire(&lock->lk_lock);
-        while (lock->lk_state) {
+        while (lock->lk_state == false) {
             wchan_lock(lock->lk_wchan);
             spinlock_release(&lock->lk_lock);
             wchan_sleep(lock->lk_wchan);
