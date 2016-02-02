@@ -30,9 +30,12 @@ struct VehiclesList
 }
 
 static struct lock *TempLock;
-static struct cv *Nor, *Sou, *We, *Ea;
+static struct cv *Nor;
+static struct cv *Sou;
+static struct cv *We;
+static struct cv *Ea;
 static struct VehiclesList v[12];
-static struct Direction *intersection;
+static struct Direction intersection[4];
 
 /*
  * The simulation driver will call this function once before starting
@@ -47,7 +50,10 @@ intersection_sync_init(void)
   /* replace this default implementation with your own implementation */
     TempLock = lock_create("TempLock");
     
-    intersection = {north, east, west, south};
+    intersection[0] = north;
+    intersection[0] = east;
+    intersection[0] = west;
+    intersection[0] = south;
     
     for(int i = 0; i < 12; i++){
         v[i].num = 0;
