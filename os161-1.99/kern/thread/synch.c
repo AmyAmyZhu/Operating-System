@@ -212,7 +212,7 @@ lock_acquire(struct lock *lock)
         KASSERT(lock->lk_state == false);
         lock->lk_state = true;
     
-        lk_lock->lk_holder = curthread;
+        lock->lk_holder = curthread;
         spinlock_release(&lock->lk_lock);
         //(void)lock;
         // suppress warning until code gets written
@@ -227,7 +227,7 @@ lock_release(struct lock *lock)
     
         spinlock_acquire(&lock->lk_lock);
         lock->lk_state = false;
-        lk_lock->lk_holder = NULL;
+        lock->lk_holder = NULL;
 
         KASSERT(lock->lk_state = false);
         wchan_wakeone(lock->lk_wchan);
