@@ -130,7 +130,7 @@ intersection_before_entry(Direction origin, Direction destination)
     bool R1 = false; // entered from the same direction
     bool R2 = false; // going in opposite direction
     bool R3 = false; // two cars different destination, at least one is right-turn
-    
+    bool IsEmpty = true;
     // R1
     /*if(origin == north){
         if((v[3].num == 0) && (v[4].num == 0) && (v[5].num == 0) &&
@@ -184,6 +184,13 @@ intersection_before_entry(Direction origin, Direction destination)
             R2 = true;
         }
     }*/
+    
+    /////////////////////
+    for(int i = 0; i < 12; i++){
+        if(v[i].num != 0){
+            IsEmpty = false;
+        }
+    }
     
     // 左转
     if((origin == north) && (destination == east)){
@@ -285,10 +292,11 @@ intersection_before_entry(Direction origin, Direction destination)
     kprintf("%d, %d, %d\n", R1, R2, R3);
     
     // check
-    while ((R1 != true) && (R2 != true) && (R3 != true)) {
-        cv_wait(cvTraffic, TempLock);
+    if(!IsEmpty){
+        while ((R1 != true) || (R2 != true) || (R3 != true)) {
+            cv_wait(cvTraffic, TempLock);
+        }
     }
-    
     // add car
     if(origin == north){
         if(destination == east){
