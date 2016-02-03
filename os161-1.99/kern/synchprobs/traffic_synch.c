@@ -80,6 +80,7 @@ intersection_sync_init(void)
     
 
     cvTraffic = cv_create("CV_TRAFFIC");
+    kprintf("init\n");
 }
 
 /* 
@@ -102,6 +103,7 @@ intersection_sync_cleanup(void)
     for(int i = 0; i < 12; i++){
         v[i].num = 0;
     }
+    kprintf("cleanup\n");
 }
 
 /*
@@ -216,6 +218,8 @@ intersection_before_entry(Direction origin, Direction destination)
         }
     }
     
+    kprintf("%d, %d, %d, %d\n", R1, R2, R3, ifEmpty);
+    
     // check
     while ((R1 != true) || (R2 != true) || (R3 != true) || (ifEmpty != true)) {
         cv_wait(cvTraffic, TempLock);
@@ -255,8 +259,10 @@ intersection_before_entry(Direction origin, Direction destination)
             (v[11].num)++;
         }
     }
-    
+    kprintf("lalalala\n");
     lock_release(TempLock);
+    kprintf("233333\n");
+
 }
 
 /*
@@ -311,8 +317,11 @@ intersection_after_exit(Direction origin, Direction destination)
             (v[11].num)--;
         }
     }
-    
+    kprintf("55555\n");
+
     cv_broadcast(cvTraffic, TempLock);
     
     lock_release(TempLock);
+    kprintf("666666\n");
+
 }
