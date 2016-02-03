@@ -221,8 +221,10 @@ intersection_before_entry(Direction origin, Direction destination)
     kprintf("%d, %d, %d, %d\n", R1, R2, R3, ifEmpty);
     
     // check
-    while ((R1 != true) || (R2 != true) || (R3 != true) || (ifEmpty != true)) {
-        cv_wait(cvTraffic, TempLock);
+    if(!ifEmpty){
+        while ((R1 != true) && (R2 != true) && (R3 != true)) {
+            cv_wait(cvTraffic, TempLock);
+        }
     }
     
     kprintf("hehehehe\n");
