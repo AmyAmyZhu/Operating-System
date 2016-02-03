@@ -127,9 +127,7 @@ intersection_before_entry(Direction origin, Direction destination)
     KASSERT(TempLock != NULL);
     lock_acquire(TempLock);
     
-    bool R1 = false; // entered from the same direction
-    bool R2 = false; // going in opposite direction
-    bool R3 = false; // two cars different destination, at least one is right-turn
+    
     bool IsEmpty = true;
     // R1
     /*if(origin == north){
@@ -193,80 +191,74 @@ intersection_before_entry(Direction origin, Direction destination)
     }
     
     // 左转
+    if(!IsEmpty){
     if((origin == north) && (destination == east)){
-        R1 = true;
-        if((v[4].num != 0) || (v[5].num != 0) || (v[6].num != 0) ||
+        while((v[4].num != 0) || (v[5].num != 0) || (v[6].num != 0) ||
            (v[7].num != 0) || (v[8].num != 0) || (v[9].num != 0) || (v[10].num != 0)){
-            R1 = false;
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == south) && (destination == west)){
-        R1 = true;
-        if((v[0].num != 0) || (v[1].num != 0) || (v[2].num != 0) ||
+        while((v[0].num != 0) || (v[1].num != 0) || (v[2].num != 0) ||
            (v[9].num != 0) || (v[10].num != 0) || (v[4].num != 0) || (v[5].num != 0)){
-            R1 = false;
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == east) && (destination == south)){
-        R1 = true;
-        if((v[9].num != 0) || (v[10].num != 0) || (v[11].num != 0) ||
+        while((v[9].num != 0) || (v[10].num != 0) || (v[11].num != 0) ||
            (v[0].num != 0) || (v[1].num != 0) || (v[7].num != 0) || (v[8].num != 0)){
-            R1 = false;
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == west) && (destination == north)){
-        R1 = true;
-        if((v[3].num != 0) || (v[4].num != 0) || (v[5].num != 0) ||
+        while((v[3].num != 0) || (v[4].num != 0) || (v[5].num != 0) ||
            (v[7].num != 0) || (v[8].num != 0) || (v[0].num != 0) || (v[1].num != 0)){
-            R1 = false;
+            cv_wait(cvTraffic, TempLock);
         }
+    }
     }
     
     // 直行
+    if(!IsEmpty){
     if((origin == north) && (destination == south)){
-        R2 = true;
-        if((v[4].num != 0) || (v[5].num != 0) || (v[8].num != 0) ||
+        while((v[4].num != 0) || (v[5].num != 0) || (v[8].num != 0) ||
            (v[10].num != 0) || (v[9].num != 0) || (v[11].num != 0)){
-            R2 = false;
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == south) && (destination == north)){
-        R2 = true;
-        if((v[3].num != 0) || (v[4].num != 0) || (v[5].num != 0) ||
+        while((v[3].num != 0) || (v[4].num != 0) || (v[5].num != 0) ||
            (v[10].num != 0) || (v[9].num != 0) || (v[0].num != 0)){
-            R2 = false;
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == east) && (destination == west)){
-        R2 = true;
-        if((v[9].num != 0) || (v[7].num != 0) || (v[8].num != 0) ||
+        while((v[9].num != 0) || (v[7].num != 0) || (v[8].num != 0) ||
            (v[0].num != 0) || (v[1].num != 0) || (v[2].num != 0)){
-            R2 = false;
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == west) && (destination == east)){
-        R2 = true;
-        if((v[6].num != 0) || (v[7].num != 0) || (v[8].num != 0) ||
+        while((v[6].num != 0) || (v[7].num != 0) || (v[8].num != 0) ||
            (v[5].num != 0) || (v[0].num != 0) || (v[1].num != 0)){
-            R2 = false;
+            cv_wait(cvTraffic, TempLock);
         }
+    }
     }
     
     // 右转
+    if(!IsEmpty){
     if((origin == north) && (destination == west)){
-        R3 = true;
-        if((v[4].num != 0) || (v[8].num != 0)) {
-            R3 = false;
+        while((v[4].num != 0) || (v[8].num != 0)) {
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == south) && (destination == east)){
-        R3 = true;
-        if((v[0].num != 0) || (v[10].num != 0)) {
-            R3 = false;
+        while((v[0].num != 0) || (v[10].num != 0)) {
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == east) && (destination == north)){
-        R3 = true;
-        if((v[7].num != 0) || (v[9].num != 0)) {
-            R3 = false;
+        while((v[7].num != 0) || (v[9].num != 0)) {
+            cv_wait(cvTraffic, TempLock);
         }
     } else if((origin == west) && (destination == south)){
-        R3 = true;
-        if((v[1].num != 0) || (v[5].num != 0)) {
-            R3 = false;
+        while((v[1].num != 0) || (v[5].num != 0)) {
+            cv_wait(cvTraffic, TempLock);
         }
+    }
     }
     
     if(origin == north){
@@ -288,15 +280,7 @@ intersection_before_entry(Direction origin, Direction destination)
     } else if(destination == west){
         kprintf("west ");
     }
-    
-    kprintf("%d, %d, %d\n", R1, R2, R3);
-    
-    // check
-    if(!IsEmpty){
-        while ((R1 != true) || (R2 != true) || (R3 != true)) {
-            cv_wait(cvTraffic, TempLock);
-        }
-    }
+        
     // add car
     if(origin == north){
         if(destination == east){
