@@ -224,7 +224,9 @@ intersection_before_entry(Direction origin, Direction destination)
     while ((R1 != true) || (R2 != true) || (R3 != true) || (ifEmpty != true)) {
         cv_wait(cvTraffic, TempLock);
     }
-
+    
+    kprintf("hehehehe\n");
+    
     // add car
     if(origin == north){
         if(destination == east){
