@@ -261,26 +261,6 @@ intersection_before_entry(Direction origin, Direction destination)
     }
     }
     
-    if(origin == north){
-        kprintf("north ");
-    } else if(origin == south){
-        kprintf("south ");
-    } else if(origin == east){
-        kprintf("east ");
-    } else if(origin == west){
-        kprintf("west ");
-    }
-    
-    if(destination == north){
-        kprintf("north ");
-    } else if(destination == south){
-        kprintf("south ");
-    } else if(destination == east){
-        kprintf("east ");
-    } else if(destination == west){
-        kprintf("west ");
-    }
-        
     // add car
     if(origin == north){
         if(destination == east){
@@ -370,7 +350,6 @@ intersection_after_exit(Direction origin, Direction destination)
             (v[11].num)--;
         }
     }
-    kprintf("car几？");
     
     cv_broadcast(cvTraffic, TempLock);
     
