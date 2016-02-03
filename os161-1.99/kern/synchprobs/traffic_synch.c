@@ -132,7 +132,7 @@ intersection_before_entry(Direction origin, Direction destination)
     bool R3 = false; // two cars different destination, at least one is right-turn
     
     // R1
-    if(origin == north){
+    /*if(origin == north){
         if((v[3].num == 0) && (v[4].num == 0) && (v[5].num == 0) &&
            (v[6].num == 0) && (v[7].num == 0) && (v[8].num == 0) &&
            (v[9].num == 0) && (v[10].num == 0) && (v[11].num == 0)){
@@ -183,30 +183,85 @@ intersection_before_entry(Direction origin, Direction destination)
            (v[9].num == 0) && (v[10].num == 0) && (v[11].num == 0)){ // west
             R2 = true;
         }
+    }*/
+    
+    // 左转
+    if((origin == north) && (destination == east)){
+        R1 = true;
+        if((v[4].num != 0) || (v[5].num != 0) || (v[6].num != 0) ||
+           (v[7].num != 0) || (v[8].num != 0) || (v[9].num != 0) || (v[10].num != 0)){
+            R1 = false;
+        }
+    } else if((origin == south) && (destination == west)){
+        R1 = true;
+        if((v[0].num != 0) || (v[1].num != 0) || (v[2].num != 0) ||
+           (v[9].num != 0) || (v[10].num != 0) || (v[4].num != 0) || (v[5].num != 0)){
+            R1 = false;
+        }
+    } else if((origin == east) && (destination == south)){
+        R1 = true;
+        if((v[9].num != 0) || (v[10].num != 0) || (v[11].num != 0) ||
+           (v[0].num != 0) || (v[1].num != 0) || (v[7].num != 0) || (v[8].num != 0)){
+            R1 = false;
+        }
+    } else if((origin == west) && (destination == north)){
+        R1 = true;
+        if((v[3].num != 0) || (v[4].num != 0) || (v[5].num != 0) ||
+           (v[7].num != 0) || (v[8].num != 0) || (v[0].num != 0) || (v[1].num != 0)){
+            R1 = false;
+        }
     }
     
-    // R3
+    // 直行
+    if((origin == north) && (destination == south)){
+        R2 = true;
+        if((v[4].num != 0) || (v[5].num != 0) || (v[8].num != 0) ||
+           (v[10].num != 0) || (v[9].num != 0) || (v[11].num != 0)){
+            R2 = false;
+        }
+    } else if((origin == south) && (destination == north)){
+        R2 = true;
+        if((v[3].num != 0) || (v[4].num != 0) || (v[5].num != 0) ||
+           (v[10].num != 0) || (v[9].num != 0) || (v[0].num != 0)){
+            R2 = false;
+        }
+    } else if((origin == east) && (destination == west)){
+        R2 = true;
+        if((v[9].num != 0) || (v[7].num != 0) || (v[8].num != 0) ||
+           (v[0].num != 0) || (v[1].num != 0) || (v[2].num != 0)){
+            R2 = false;
+        }
+    } else if((origin == west) && (destination == east)){
+        R2 = true;
+        if((v[6].num != 0) || (v[7].num != 0) || (v[8].num != 0) ||
+           (v[5].num != 0) || (v[0].num != 0) || (v[1].num != 0)){
+            R2 = false;
+        }
+    }
+    
+    // 右转
     if((origin == north) && (destination == west)){
         R3 = true;
-        if((v[2].num != 0) || (v[4].num != 0) || (v[8].num != 0)) {
+        if((v[4].num != 0) || (v[8].num != 0)) {
             R3 = false;
         }
     } else if((origin == south) && (destination == east)){
         R3 = true;
-        if((v[0].num != 0) || (v[6].num != 0) || (v[10].num != 0)) {
+        if((v[0].num != 0) || (v[10].num != 0)) {
             R3 = false;
         }
     } else if((origin == east) && (destination == north)){
         R3 = true;
-        if((v[3].num != 0) || (v[7].num != 0) || (v[9].num != 0)) {
+        if((v[7].num != 0) || (v[9].num != 0)) {
             R3 = false;
         }
     } else if((origin == west) && (destination == south)){
         R3 = true;
-        if((v[1].num != 0) || (v[5].num != 0) || (v[11].num != 0)) {
+        if((v[1].num != 0) || (v[5].num != 0)) {
             R3 = false;
         }
     }
+    
     if(origin == north){
         kprintf("north ");
     } else if(origin == south){
