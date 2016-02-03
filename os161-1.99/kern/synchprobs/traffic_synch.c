@@ -127,8 +127,8 @@ intersection_before_entry(Direction origin, Direction destination)
     KASSERT(TempLock != NULL);
     lock_acquire(TempLock);
     
-    bool R1 = true; // entered from the same direction
-    bool R2 = true; // going in opposite direction
+    bool R1 = false; // entered from the same direction
+    bool R2 = false; // going in opposite direction
     bool R3 = false; // two cars different destination, at least one is right-turn
     
     // R1
@@ -136,25 +136,25 @@ intersection_before_entry(Direction origin, Direction destination)
         if((v[3].num == 0) && (v[4].num == 0) && (v[5].num == 0) &&
            (v[6].num == 0) && (v[7].num == 0) && (v[8].num == 0) &&
            (v[9].num == 0) && (v[10].num == 0) && (v[11].num == 0)){
-            R1 = false;
+            R1 = true;
         }
     } else if(origin == east){
         if((v[0].num == 0) && (v[1].num == 0) && (v[2].num == 0) &&
            (v[6].num == 0) && (v[7].num == 0) && (v[8].num == 0) &&
            (v[9].num == 0) && (v[10].num == 0) && (v[11].num == 0)){
-            R1 = false;
+            R1 = true;
         }
     } else if(origin == south){
         if((v[3].num == 0) && (v[4].num == 0) && (v[5].num == 0) &&
            (v[0].num == 0) && (v[1].num == 0) && (v[2].num == 0) &&
            (v[9].num == 0) && (v[10].num == 0) && (v[11].num == 0)){
-            R1 = false;
+            R1 = true;
         }
     } else if(origin == west){
         if((v[3].num == 0) && (v[4].num == 0) && (v[5].num == 0) &&
            (v[6].num == 0) && (v[7].num == 0) && (v[8].num == 0) &&
            (v[0].num == 0) && (v[1].num == 0) && (v[2].num == 0)){
-            R1 = false;
+            R1 = true;
         }
     }
     
@@ -163,25 +163,25 @@ intersection_before_entry(Direction origin, Direction destination)
         if((v[0].num == 0) && (v[2].num == 0) && (v[3].num == 0) &&
            (v[4].num == 0) && (v[6].num == 0) && (v[7].num == 0) &&
            (v[8].num == 0) && (v[9].num == 0) && (v[10].num == 0)){ // south
-            R2 = false;
+            R2 = true;
         }
     } else if(destination == south){
         if((v[0].num == 0) && (v[1].num == 0) && (v[2].num == 0) &&
            (v[4].num == 0) && (v[5].num == 0) && (v[6].num == 0) &&
            (v[8].num == 0) && (v[10].num == 0) && (v[11].num == 0)){ // north
-            R2 = false;
+            R2 = true;
         }
     } else if(destination == west){
         if((v[1].num == 0) && (v[2].num == 0) && (v[3].num == 0) &&
            (v[4].num == 0) && (v[5].num == 0) && (v[7].num == 0) &&
            (v[8].num == 0) && (v[9].num == 0) && (v[11].num == 0)){ // east
-            R2 = false;
+            R2 = true;
         }
     } else if(destination == east){
         if((v[0].num == 0) && (v[1].num == 0) && (v[3].num == 0) &&
            (v[5].num == 0) && (v[6].num == 0) && (v[7].num == 0) &&
            (v[9].num == 0) && (v[10].num == 0) && (v[11].num == 0)){ // west
-            R2 = false;
+            R2 = true;
         }
     }
     
@@ -304,7 +304,8 @@ intersection_after_exit(Direction origin, Direction destination)
             (v[11].num)--;
         }
     }
-
+    kprintf("car几？");
+    
     cv_broadcast(cvTraffic, TempLock);
     
     lock_release(TempLock);
