@@ -207,6 +207,25 @@ intersection_before_entry(Direction origin, Direction destination)
             R3 = false;
         }
     }
+    if(origin == north){
+        kprintf("north ");
+    } else if(origin == south){
+        kprintf("south ");
+    } else if(origin == east){
+        kprintf("east ");
+    } else if(origin == west){
+        kprintf("west ");
+    }
+    
+    if(destination == north){
+        kprintf("north ");
+    } else if(destination == south){
+        kprintf("south ");
+    } else if(destination == east){
+        kprintf("east ");
+    } else if(destination == west){
+        kprintf("west ");
+    }
     
     kprintf("%d, %d, %d\n", R1, R2, R3);
     
