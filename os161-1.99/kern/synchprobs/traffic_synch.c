@@ -80,7 +80,6 @@ intersection_sync_init(void)
     
 
     cvTraffic = cv_create("CV_TRAFFIC");
-    kprintf("init\n");
 }
 
 /* 
@@ -103,7 +102,6 @@ intersection_sync_cleanup(void)
     for(int i = 0; i < 12; i++){
         v[i].num = 0;
     }
-    kprintf("cleanup\n");
 }
 
 /*
@@ -132,7 +130,6 @@ intersection_before_entry(Direction origin, Direction destination)
     bool R1 = true; // entered from the same direction
     bool R2 = true; // going in opposite direction
     bool R3 = false; // two cars different destination, at least one is right-turn
-    bool ifEmpty = true; // if there are no cars
     
     // R1
     if(origin == north){
@@ -211,23 +208,12 @@ intersection_before_entry(Direction origin, Direction destination)
         }
     }
     
-    // empty
-    for(int i = 0; i < 12; i++){
-        if(v[i].num != 0){
-            ifEmpty = false;
-        }
-    }
-    
-    kprintf("%d, %d, %d, %d\n", R1, R2, R3, ifEmpty);
+    kprintf("%d, %d, %d\n", R1, R2, R3);
     
     // check
-    if(!ifEmpty){
-        while ((R1 != true) && (R2 != true) && (R3 != true)) {
-            cv_wait(cvTraffic, TempLock);
-        }
+    while ((R1 != true) && (R2 != true) && (R3 != true)) {
+        cv_wait(cvTraffic, TempLock);
     }
-    
-    kprintf("hehehehe\n");
     
     // add car
     if(origin == north){
@@ -263,10 +249,7 @@ intersection_before_entry(Direction origin, Direction destination)
             (v[11].num)++;
         }
     }
-    kprintf("lalalala\n");
     lock_release(TempLock);
-    kprintf("233333\n");
-
 }
 
 /*
@@ -321,11 +304,8 @@ intersection_after_exit(Direction origin, Direction destination)
             (v[11].num)--;
         }
     }
-    kprintf("55555\n");
 
     cv_broadcast(cvTraffic, TempLock);
     
     lock_release(TempLock);
-    kprintf("666666\n");
-
 }
