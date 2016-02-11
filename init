@@ -1,0 +1,9 @@
+#!/bin/bash
+ASST=1
+if [ ${#} -eq 0 ] ;then
+	cd ~/cs350-os161/os161-1.99/kern/compile/ASST${ASST}
+	bmake
+	bmake install
+else
+	echo "Too many agruments"
+fi
