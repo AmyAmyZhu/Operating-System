@@ -54,7 +54,7 @@
 #include <vfs.h>
 #include <synch.h>
 #include <kern/fcntl.h>
-#include <kern/erron.h>
+#include <kern/errno.h>
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -66,6 +66,7 @@ int curpid = 0;
 struct array *arr;
 
 struct lock *p_lock;
+
 struct lock *get_plock(){
     return p_lock;
 }
@@ -227,7 +228,7 @@ proc_bootstrap(void)
     arr = array_create();
     array_setsize(arr,0);
     
-    struct proctree *new = init_proctree(kproc);
+    struct proctree *new = init_proctree(kproc, curpid);
     int check = array_add(arr, new, NULL);
     if(check != 0){
         panic("cannot add to array\n");
@@ -256,11 +257,11 @@ proc_create_runprogram(const char *name)
 
 #if OPT_A2
     lock_acquire("p_lock");
-    update(1);
+    update(1, curpid, arr);
     if(curpid > PID_MAX) {
         return (struct proc *)ENPROC;
     }
-    struct proctree *new = init_proctree(proc);
+    struct proctree *new = init_proctree(proc, curpid);
     struct proctree *temp;
     int check = array_add(arr, new, NULL);
     if(check != 0){
@@ -493,7 +494,7 @@ struct proctree *init_proctree(struct proc *proc, int curpid){
     new = kmalloc(sizeof(struct proctree));
     new->proctree_pid = proc->pid;
     new->exitcode = -1;
-    new->sem = sem_create("tree_sem");
+    new->sem = sem_create("tree_sem", 0);
     
     struct array *child;
     child = array_create();
@@ -517,7 +518,7 @@ int update(int i, int curpid, struct array *arr){
         new = array_get(arr, r);
         if(new->proctree_pid == q) {
             q++;
-            return update(q);
+            return update(q, curpid, arr);
         }
     }
     curpid = q;

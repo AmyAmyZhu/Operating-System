@@ -124,6 +124,7 @@ struct addrspace *curproc_getas(void);
 struct addrspace *curproc_setas(struct addrspace *);
 
 #if OPT_A2
+struct lock *get_plock();
 int get_exitcode(pid_t proctree_pid);
 int is_children(int find);
 #endif // OPT_A2
