@@ -44,7 +44,6 @@
 
 #include "opt-A2.h"
 //#include <proctree.h>
-#include <array.h>
 #include <types.h>
 #include <proc.h>
 #include <current.h>
