@@ -459,7 +459,17 @@ int is_children(int find){
     
     for(int i = 0; i < size; i++){
         temp = array_get(new->children, i);
-        temp_find = find_pid(*temp);
+        temp_find = -1;
+        
+        struct proctree *new3;
+        int size3 = array_num(arr);
+        for(int i = 0; i < size3; i++){
+            new3 = array_get(arr, i);
+            if(new->proctree_pid == *temp){
+                temp_find = i;
+            }
+        }
+        
         temp_tree = array_get(arr, temp_find);
         if(temp_tree->exitcode != -1){
             array_remove(new->children, i);
