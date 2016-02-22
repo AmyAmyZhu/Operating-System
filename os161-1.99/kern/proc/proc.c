@@ -410,6 +410,45 @@ int get_exitcode(pid_t proctree_pid){
     return new->exitcode;
 }
 
+int is_children(int find){
+    struct proctree *new = array_get(arr, find);
+    struct proctree *temp_tree;
+    int size = array_num(new->children);
+    
+    int *temp;
+    int temp_find;
+    
+    for(int i = 0; i < size; i++){
+        temp = array_get(new->children, i);
+        temp_find = -1;
+        
+        struct proctree *new3;
+        int size3 = array_num(arr);
+        for(int i = 0; i < size3; i++){
+            new3 = array_get(arr, i);
+            if(new->proctree_pid == *temp){
+                temp_find = i;
+            }
+        }
+        
+        temp_tree = array_get(arr, temp_find);
+        if(temp_tree->exitcode != -1){
+            array_remove(new->children, i);
+            
+            struct proctree *new2 = array_get(arr, temp_find);
+            for(int i = array_num(new2->children)-1; i >= 0; i--){
+                array_remove(new2->children, i);
+            }
+            array_destroy(new2->children);
+            sem_destroy(new2->sem);
+            array_remove(arr, temp_find);
+            
+            i--;
+            size--;
+        }
+    }
+    return 0;
+}
 
 struct lock *get_plock(){
     return p_lock;
