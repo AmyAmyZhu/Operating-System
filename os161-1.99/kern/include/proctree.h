@@ -3,6 +3,7 @@
 
 #include "opt-A2.h"
 #include <array.h>
+#include <synch.h>
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 
