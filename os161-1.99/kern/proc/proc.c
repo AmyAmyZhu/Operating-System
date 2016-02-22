@@ -500,8 +500,7 @@ struct proctree *init_proctree(struct proc *proc, int curpid){
     }
     proc->pid = curpid;
     
-    struct proctree *new;
-    new = kmalloc(sizeof(struct proctree));
+    struct proctree *new = kmalloc(sizeof(struct proctree));
     new->proctree_pid = proc->pid;
     new->exitcode = -1;
     new->sem = sem_create("tree_sem", 0);
