@@ -35,8 +35,7 @@
  *
  * Note: curproc is defined by <current.h>.
  */
-#include "opt-A2.h"
-//#include <proctree.h>
+
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 
@@ -45,26 +44,6 @@ struct vnode;
 #ifdef UW
 struct semaphore;
 #endif // UW
-
-#if OPT_A2
-extern int curpid;
-extern struct lock *p_lock;
-extern struct array *arr;
-#endif //OPT_A2
-
-#if OPT_A2
-struct proctree{
-    int exitcode;
-    pid_t proctree_pid;
-    pid_t parent;
-    struct array *children;
-    struct semaphore *sem;
-};
-
-struct proctree *init_proctree(struct proc *proc, int curpid);
-int update(int i, int curpid, struct array *arr);
-#endif // OPT_A2
-
 
 /*
  * Process structure.
@@ -88,10 +67,8 @@ struct proc {
      it has opened, not just the console. */
   struct vnode *console;                /* a vnode for the console device */
 #endif
-    
-#if OPT_A2
-    pid_t pid; // current process id
-#endif // OPT_A2
+
+	/* add more material here as needed */
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -123,11 +100,5 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
-#if OPT_A2
-struct lock *get_plock();
-int get_exitcode(pid_t proctree_pid);
-int is_children(int find);
-#endif // OPT_A2
 
 #endif /* _PROC_H_ */
-
