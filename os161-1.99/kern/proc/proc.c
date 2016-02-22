@@ -54,6 +54,7 @@
 #include <vfs.h>
 #include <synch.h>
 #include <kern/fcntl.h>
+#include <kern/erron.h>
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -428,7 +429,16 @@ curproc_setas(struct addrspace *newas)
 int get_exitcode(pid_t proctree_pid){
     lock_acquire(p_lock);
     
-    int c = find_pid(proctree_pid);
+    int c = -1;
+    struct proctree *new2;
+    int size = array_num(arr);
+    for(int i = 0; i < size; i++){
+        new2 = array_get(arr, i);
+        if(new2->proctree_pid == proctree_pid){
+            c = i;
+        }
+    }
+    
     struct proctree *new = array_get(arr, c);
     KASSERT(new != NULL);
     KASSERT(new->sem != NULL);

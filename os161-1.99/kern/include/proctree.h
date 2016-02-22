@@ -2,7 +2,6 @@
 #define _PROCTREE_H_
 
 #include "opt-A2.h"
-#include <proc.h>
 #include <array.h>
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */

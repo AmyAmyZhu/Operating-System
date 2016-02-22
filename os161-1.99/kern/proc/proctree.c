@@ -3,13 +3,6 @@
 #include <array.h>
 #include <limits.h>
 #include <types.h>
-#include <proc.h>
-#include <current.h>
-#include <addrspace.h>
-#include <vnode.h>
-#include <vfs.h>
-#include <synch.h>
-#include <kern/fcntl.h>
 
 #if OPT_A2
 
