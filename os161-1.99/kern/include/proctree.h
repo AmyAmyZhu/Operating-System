@@ -19,3 +19,5 @@ struct proctree{
 struct proctree *init_proctree(struct proc *proc, int curpid);
 int update(int i, int curpid, struct array *arr);
 #endif // OPT_A2
+
+#endif // proctree.h

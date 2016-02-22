@@ -110,9 +110,10 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
-#endif /* _PROC_H_ */
-
 #if OPT_A2
 int get_exitcode(pid_t proctree_pid);
 int is_children(int find);
 #endif // OPT_A2
+
+#endif /* _PROC_H_ */
+
