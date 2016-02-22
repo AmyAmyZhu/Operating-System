@@ -66,10 +66,6 @@ int curpid = 0;
 struct array *arr;
 
 struct lock *p_lock;
-
-struct lock *get_plock(){
-    return p_lock;
-}
 #endif // OPT_A2
 
 /*
@@ -493,6 +489,9 @@ int is_children(int find){
 
 
 #if OPT_A2
+struct lock *get_plock(){
+    return p_lock;
+}
 
 struct proctree *init_proctree(struct proc *proc, int curpid){
     if(curpid == -1){
@@ -500,7 +499,7 @@ struct proctree *init_proctree(struct proc *proc, int curpid){
     }
     proc->pid = curpid;
     
-    struct proctree *new = kmalloc(sizeof(struct *proctree));
+    struct proctree *new = kmalloc((int)sizeof(struct *proctree));
     new->proctree_pid = proc->pid;
     new->exitcode = -1;
     new->sem = sem_create("tree_sem", 0);
