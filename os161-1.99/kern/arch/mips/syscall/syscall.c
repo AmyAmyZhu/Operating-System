@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt-A2.h"
+#include <addrspace.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
@@ -132,6 +134,11 @@ syscall(struct trapframe *tf)
 #endif // UW
 
 	    /* Add stuff here */
+#if OPT_A2
+    case SYS_fork:
+        err = sys_fork(tf, &retval);
+        break;
+#endif // OPT_A2
  
 	default:
 	  kprintf("Unknown syscall %d\n", callno);
@@ -176,8 +183,31 @@ syscall(struct trapframe *tf)
  *
  * Thus, you can trash it and do things another way if you prefer.
  */
+#if OPT_A2
 void
 enter_forked_process(struct trapframe *tf)
 {
-	(void)tf;
+    // code you created or modified for ASST2 goes here
+    struct trapframe stack = *tf;
+    as_activate();
+
+    
+    stack.tf_a3 = 0;
+    stack.tf_v0 = 0; // no children
+    /*
+     * Now, advance the program counter, to avoid restarting
+     * the syscall over and over again.
+     */
+    stack.tf_epc += 4;
+    
+    mips_usermode(&stack);
+    panic("enter_forked_process: can not return from mips_usermode()");
 }
+#else
+void
+enter_forked_process(struct trapframe *tf)
+{
+    (void)tf;
+}
+#endif /* OPT_A2 */
+
