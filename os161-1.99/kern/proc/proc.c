@@ -42,6 +42,9 @@
  * process that will have more than one thread is the kernel process.
  */
 
+#include "opt-A2.h"
+//#include <proctree.h>
+#include <array.h>
 #include <types.h>
 #include <proc.h>
 #include <current.h>
@@ -55,6 +58,13 @@
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
+
+#if OPT_A2
+int curpid = 0;
+struct array *arr;
+
+struct lock *p_lock;
+#endif // OPT_A2
 
 /*
  * Mechanism for making the kernel menu thread sleep while processes are running
@@ -207,7 +217,20 @@ proc_bootstrap(void)
   if (no_proc_sem == NULL) {
     panic("could not create no_proc_sem semaphore\n");
   }
-#endif // UW 
+#endif // UW
+    
+#if OPT_A2
+    p_lock = lock_create("p_lock");
+    arr = array_create();
+    array_setsize(arr,0);
+    
+    struct proctree *new = init_proctree(kproc, curpid);
+    int check = array_add(arr, new, NULL);
+    if(check != 0){
+        panic("cannot add to array\n");
+    }
+    
+#endif // OPT_A2
 }
 
 /*
@@ -364,3 +387,35 @@ curproc_setas(struct addrspace *newas)
 	spinlock_release(&proc->p_lock);
 	return oldas;
 }
+
+#if OPT_A2
+struct lock *get_plock(){
+    return p_lock;
+}
+
+struct proctree *init_proctree(struct proc *proc, int curpid){
+    if(curpid == -1){
+        return NULL;
+    }
+    proc->pid = curpid;
+    
+    struct proctree *new = kmalloc(sizeof(struct *proctree));
+    new->proctree_pid = proc->pid;
+    new->exitcode = -1;
+    new->sem = sem_create("tree_sem", 0);
+    
+    struct array *child;
+    child = array_create();
+    array_setsize(child, 0);
+    new->children = child;
+    
+    if(curpid == 0){
+        new->parent = -1;
+    }else{
+        new->parent = curproc->pid;
+    }
+    
+    return new;
+}
+
+#endif // OPT_A2
