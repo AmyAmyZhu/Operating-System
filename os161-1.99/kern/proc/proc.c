@@ -59,6 +59,10 @@
 struct proc *kproc;
 
 #if OPT_A2
+int curpid = 0;
+struct array *arr;
+
+struct lock *p_lock;
 #endif // OPT_A2
 
 /*
