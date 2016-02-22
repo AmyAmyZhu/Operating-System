@@ -388,6 +388,29 @@ curproc_setas(struct addrspace *newas)
 }
 
 #if OPT_A2
+int get_exitcode(pid_t proctree_pid){
+    lock_acquire(p_lock);
+    
+    int c = -1;
+    struct proctree *new2;
+    int size = array_num(arr);
+    for(int i = 0; i < size; i++){
+        new2 = array_get(arr, i);
+        if(new2->proctree_pid == proctree_pid){
+            c = i;
+        }
+    }
+    
+    struct proctree *new = array_get(arr, c);
+    KASSERT(new != NULL);
+    KASSERT(new->sem != NULL);
+    
+    lock_release(p_lock);
+    P(new->sem);
+    return new->exitcode;
+}
+
+
 struct lock *get_plock(){
     return p_lock;
 }
