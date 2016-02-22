@@ -36,7 +36,7 @@
  * Note: curproc is defined by <current.h>.
  */
 #include "opt-A2.h"
-#include <proctree.h>
+//#include <proctree.h>
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 
@@ -51,6 +51,22 @@ extern int curpid;
 extern struct lock *p_lock;
 extern struct array *arr;
 #endif //OPT_A2
+
+#if OPT_A2
+struct proctree{
+    int exitcode;
+    pid_t proctree_pid;
+    pid_t parent;
+    struct array *children;
+    struct semaphore *sem;
+};
+
+struct proctree *init_proctree(struct proc *proc, int curpid);
+int update(int i, int curpid, struct array *arr);
+#endif // OPT_A2
+
+#endif // proctree.h
+
 
 
 /*
