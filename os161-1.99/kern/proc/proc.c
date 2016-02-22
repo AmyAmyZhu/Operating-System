@@ -416,4 +416,20 @@ struct proctree *init_proctree(struct proc *proc, int curpid){
     
     return new;
 }
+
+int update(int i, int curpid, struct array *arr){
+    int size = array_num(arr);
+    int q = i;
+    struct proctree *new;
+    for(int r = 0; r < size; r++){
+        new = array_get(arr, r);
+        if(new->proctree_pid == q) {
+            q++;
+            return update(q, curpid, arr);
+        }
+    }
+    curpid = q;
+    return q;
+}
+
 #endif // OPT_A2
