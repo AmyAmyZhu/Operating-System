@@ -249,6 +249,38 @@ proc_create_runprogram(const char *name)
 		return NULL;
 	}
 
+#if OPT_A2
+    lock_acquire("p_lock");
+    update(1, curpid, arr);
+    if(curpid > PID_MAX) {
+        return (struct proc *)ENPROC;
+    }
+    struct proctree *new = init_proctree(proc, curpid);
+    struct proctree *temp;
+    int check = array_add(arr, new, NULL);
+    if(check != 0){
+        panic("cannot add to array\n");
+    }
+    
+    int find = -1;
+    int size = array_num(arr);
+    struct proctree *new2;
+    for(int i = 0; i < size; i++){
+        new2 = array_get(arr, i);
+        if(new2->proctree_pid == curproc->pid){
+            find = i;
+        }
+    }
+    
+    temp = array_get(arr, find);
+    int *c = kmalloc(sizeof(pid_t));
+    *c = new->proctree_pid;
+    array_add(temp->children, c, NULL);
+    
+    lock_release("p_lock");
+#endif // OPT_A2
+    
+    
 #ifdef UW
 	/* open the console - this should always succeed */
 	console_path = kstrdup("con:");
