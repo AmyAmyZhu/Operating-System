@@ -29,7 +29,6 @@
 
 #include "opt-A2.h"
 #include <addrspace.h>
-#include <proc.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>

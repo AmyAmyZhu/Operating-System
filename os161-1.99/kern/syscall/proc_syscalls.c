@@ -1,4 +1,4 @@
-/*#include "opt-A2.h"
+#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -7,27 +7,13 @@
 #include <syscall.h>
 #include <current.h>
 #include <proc.h>
-#include <thread.h>
-#include <addrspace.h>
-#include <copyinout.h>*/
-
-#include <types.h>
-#include <limits.h>
-#include <kern/errno.h>
-#include <kern/unistd.h>
-#include <kern/wait.h>
-#include <kern/fcntl.h> // O_RDONLY
-#include <vfs.h> //
-#include <lib.h>
-#include <syscall.h>
-#include <mips/trapframe.h> //
-#include <current.h>
-#include <proc.h>
-#include <synch.h>
 #include <thread.h>
 #include <addrspace.h>
 #include <copyinout.h>
-#include "opt-A2.h"
+#include <mips/trapframe.h>
+#include <vfs.h>
+#include <kern/fcntl.h>
+
 
 #if OPT_A2
 extern struct array *arr;
