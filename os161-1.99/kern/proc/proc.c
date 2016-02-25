@@ -43,7 +43,7 @@
  */
 
 
-#include "opt-A2.h"
+/*#include "opt-A2.h"
 //#include <proctree.h>
 #include <types.h>
 #include <proc.h>
@@ -52,7 +52,19 @@
 #include <vnode.h>
 #include <vfs.h>
 #include <synch.h>
-#include <kern/fcntl.h>  
+#include <kern/fcntl.h>  */
+
+#include <types.h>
+#include <array.h>
+#include <proc.h>
+#include <current.h>
+#include <addrspace.h>
+#include <vnode.h>
+#include <vfs.h>
+#include <synch.h>
+#include <kern/fcntl.h>
+#include <kern/wait.h>
+#include "opt-A2.h"
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
