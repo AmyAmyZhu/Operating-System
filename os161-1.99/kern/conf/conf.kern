@@ -336,8 +336,6 @@ file      thread/threadlist.c
 
 file      vm/kmalloc.c
 file      vm/uw-vmstats.c
-#file      vm/pagetable.c
-file      vm/addrspace.c
 # UW Mod - no longer used
 #defoption vm
 #optfile   vm   vm/vm.c
@@ -380,6 +378,7 @@ file      syscall/time_syscalls.c
 # UW additions
 file      syscall/proc_syscalls.c
 file      syscall/file_syscalls.c
+
 #
 # Startup and initialization
 #
@@ -424,6 +423,8 @@ optfile   synchprobs  synchprobs/whalemating.c
 # UW Mod
 optfile   synchprobs  synchprobs/catmouse.c
 optfile   synchprobs  synchprobs/catmouse_synch.c
+optfile   synchprobs  synchprobs/traffic.c
+optfile   synchprobs  synchprobs/traffic_synch.c
 
 
 ########################################

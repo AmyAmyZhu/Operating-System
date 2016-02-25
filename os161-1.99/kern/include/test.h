@@ -29,7 +29,7 @@
 
 #ifndef _TEST_H_
 #define _TEST_H_
-#include "opt-A2.h"
+
 /*
  * Declarations for test code and other miscellaneous high-level
  * functions.
@@ -41,6 +41,7 @@ int whalemating(int, char **);
 
 #ifdef UW
 int catmouse(int, char **);
+int traffic_simulation(int, char **);
 #endif
 
 /*
@@ -81,11 +82,7 @@ int mallocstress(int, char **);
 int nettest(int, char **);
 
 /* Routine for running a user-level program. */
-#if OPT_A2
-int runprogram(char* progname, int argc, char** argv);
-#else
 int runprogram(char *progname);
-#endif
 
 /* Kernel menu system. */
 void menu(char *argstr);

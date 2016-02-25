@@ -45,7 +45,7 @@
 #include "opt-synchprobs.h"
 #include "opt-sfs.h"
 #include "opt-net.h"
-#include "opt-A2.h"
+
 /*
  * In-kernel menu and command dispatcher.
  */
@@ -93,20 +93,16 @@ cmd_progthread(void *ptr, unsigned long nargs)
 
 	KASSERT(nargs >= 1);
 
+	if (nargs > 2) {
+		kprintf("Warning: argument passing from menu not supported\n");
+	}
+
 	/* Hope we fit. */
 	KASSERT(strlen(args[0]) < sizeof(progname));
 
 	strcpy(progname, args[0]);
 
-#if OPT_A2
-    result = runprogram(progname, nargs, args);
-#else
-	if (nargs > 2) {
-		kprintf("Warning: argument passing from menu not supported\n");
-	}
 	result = runprogram(progname);
-#endif
-	
 	if (result) {
 		kprintf("Running program %s failed: %s\n", args[0],
 			strerror(result));
@@ -505,6 +501,7 @@ static const char *mainmenu[] = {
 	"[sp1] Whale Mating                  ",
 #ifdef UW
 	"[sp2] Cat/mouse                     ",
+	"[sp3] Traffic                       ",
 #endif /* UW */
 #endif
 	"[kh] Kernel heap stats              ",
@@ -523,6 +520,20 @@ cmd_mainmenu(int n, char **a)
 	return 0;
 }
 
+//A0 ADDED!!!!!!///
+static
+int
+cmd_dth(int n, char **a)
+{
+    (void)n;
+    (void)a;
+    
+    dbflags = DB_THREADS;
+    
+    return 0;
+}
+
+
 ////////////////////////////////////////
 //
 // Command table.
@@ -537,6 +548,7 @@ static struct {
 	{ "help",	cmd_mainmenu },
 	{ "?o",		cmd_opsmenu },
 	{ "?t",		cmd_testmenu },
+    { "dth",    cmd_dth      },
 
 	/* operations */
 	{ "s",		cmd_shell },
@@ -558,6 +570,7 @@ static struct {
 	{ "sp1",	whalemating },
 #ifdef UW
 	{ "sp2",	catmouse },
+	{ "sp3",	traffic_simulation },
 #endif /* UW */
 #endif
 

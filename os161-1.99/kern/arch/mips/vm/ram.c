@@ -122,7 +122,5 @@ ram_getsize(paddr_t *lo, paddr_t *hi)
 {
 	*lo = firstpaddr;
 	*hi = lastpaddr;
-#if !OPT_A3
 	firstpaddr = lastpaddr = 0;
-#endif
 }

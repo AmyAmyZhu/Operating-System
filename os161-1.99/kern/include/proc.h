@@ -35,28 +35,35 @@
  *
  * Note: curproc is defined by <current.h>.
  */
+
 #include "opt-A2.h"
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 
 struct addrspace;
-
 struct vnode;
-
 #ifdef UW
 struct semaphore;
 #endif // UW
 
+#if OPT_A2
+extern int curpid;
+extern struct lock *p_lock;
+extern struct array *arr;
+#endif //OPT_A2
 
 #if OPT_A2
- 	#ifndef PROCINLINE
-	#define PROCINLINE INLINE
-	#endif
-	
-	DECLARRAY_BYTYPE(procarray, struct proc); 
-	DEFARRAY_BYTYPE(procarray, struct proc, PROCINLINE);
-#endif
+struct proctree{
+    int exitcode;
+    pid_t proctree_pid;
+    pid_t parent;
+    struct array *children;
+    struct semaphore *sem;
+};
 
+struct proctree *init_proctree(struct proc *proc, int curpid);
+int update(int i, int curpid, struct array *arr);
+#endif // OPT_A2
 
 /*
  * Process structure.
@@ -82,28 +89,7 @@ struct proc {
 #endif
 
 	/* add more material here as needed */
-#if OPT_A2
-	pid_t p_pid;
-	int p_exitcode;
- 	bool exitable;
- 	struct proc *p_pproc; // parent proc
- 	struct procarray p_children;
- 	struct lock *p_waitpid_lk;
- 	struct cv *p_waitpid_cv;
-#endif
-
 };
-
-
-#if OPT_A2
-	void detach_children_proc(struct proc *p);
-	bool if_procchild(struct proc *p, pid_t child_pid);
-	struct proc *proc_get_by_pid(pid_t pid);
-	
-	struct lock;
-	extern struct lock *ptable_lk;
-#endif
-
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
@@ -133,6 +119,12 @@ struct addrspace *curproc_getas(void);
 
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
+
+#if OPT_A2
+struct lock *get_plock();
+int get_exitcode(pid_t proctree_pid);
+int is_children(int find);
+#endif // OPT_A2
 
 
 #endif /* _PROC_H_ */

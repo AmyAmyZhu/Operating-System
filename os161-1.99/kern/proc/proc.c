@@ -41,31 +41,36 @@
  * Unless you're implementing multithreaded user processes, the only
  * process that will have more than one thread is the kernel process.
  */
-#define PROCINLINE
 
+#include "opt-A2.h"
+//#include <proctree.h>
 #include <types.h>
-#include <array.h>
 #include <proc.h>
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
 #include <vfs.h>
 #include <synch.h>
-#include <kern/fcntl.h>
-#include <kern/wait.h>
-#include "opt-A2.h"
+#include <kern/fcntl.h>  
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
 
+#if OPT_A2
+int curpid = 0;
+struct array *arr;
+
+struct lock *p_lock;
+#endif // OPT_A2
+
 /*
  * Mechanism for making the kernel menu thread sleep while processes are running
  */
 #ifdef UW
 /* count of the number of processes, excluding kproc */
-static unsigned int proc_count;
+static volatile unsigned int proc_count;
 /* provides mutual exclusion for proc_count */
 /* it would be better to use a lock here, but we use a semaphore because locks are not implemented in the base kernel */ 
 static struct semaphore *proc_count_mutex;
@@ -73,10 +78,7 @@ static struct semaphore *proc_count_mutex;
 struct semaphore *no_proc_sem;   
 #endif  // UW
 
-#if OPT_A2 
-static struct procarray procs;
-struct lock *ptable_lk;
-#endif
+
 
 /*
  * Create a proc structure.
@@ -110,32 +112,7 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-#if OPT_A2
-	// initialization
-	procarray_init(&proc->p_children);
-    proc->p_exitcode = 0;
-    proc->exitable = false;
-	proc->p_pproc = NULL;
-
-    proc->p_waitpid_lk = lock_create("p_waitpid_lk");
-	if (proc->p_waitpid_lk == NULL) {
-		panic("proc_create: could not create p_waitpid_lk");
-	}
-
-	proc->p_waitpid_cv = cv_create("p_waitpid_cv");
-	if (proc->p_waitpid_cv == NULL) {
-		panic("proc_create: could not create process cv");
-	}
-
-	// assign pid to new proc
-	unsigned index;
-	procarray_fill(&procs, proc, &index);
-	proc->p_pid = index;
-
 	return proc;
-#else
-	return proc;
-#endif
 }
 
 /*
@@ -199,42 +176,7 @@ proc_destroy(struct proc *proc)
 	spinlock_cleanup(&proc->p_lock);
 
 	kfree(proc->p_name);
-
-#if OPT_A2
-	// Detach proc's children processes. 
-	detach_children_proc(proc);	
-
-	// Delete proc from its parent's children array. 
-	struct proc *parent = proc->p_pproc;
-	if (parent != NULL)
-	{
-		spinlock_acquire(&parent->p_lock);
-		for (unsigned i = 0; i< procarray_num(&parent->p_children); i++){
-			struct proc *child = procarray_get(&procs, i);
-			if (child->p_pid == proc->p_pid){
-				procarray_remove(&parent->p_children, i);
-				break;
-			}
-		}
-		spinlock_release(&parent->p_lock);
-	}
-
-	// Delete from process table
-	if (parent == NULL) {
-		// Clean up self-defined properties
-		lock_destroy(proc->p_waitpid_lk);
-		cv_destroy(proc->p_waitpid_cv);
-
-		// Delete proc from process table
-		lock_acquire(ptable_lk);
-			procarray_set(&procs, proc->p_pid, NULL);
-		lock_release(ptable_lk);
-		kfree(proc);
-	}
-#else 
 	kfree(proc);
-#endif
-
 
 #ifdef UW
 	/* decrement the process count */
@@ -260,17 +202,6 @@ proc_destroy(struct proc *proc)
 void
 proc_bootstrap(void)
 {
-
-#if OPT_A2
-  procarray_init(&procs);
-  
-  ptable_lk = lock_create("ptable_lock");
-  if (ptable_lk == NULL) {
-  	panic("could not create ptable_lk\n");
-  }
-
-#endif
-
   kproc = proc_create("[kernel]");
   if (kproc == NULL) {
     panic("proc_create for kproc failed\n");
@@ -286,7 +217,19 @@ proc_bootstrap(void)
     panic("could not create no_proc_sem semaphore\n");
   }
 #endif // UW
-
+    
+#if OPT_A2
+    p_lock = lock_create("p_lock");
+    arr = array_create();
+    array_setsize(arr,0);
+    
+    struct proctree *new = init_proctree(kproc, curpid);
+    int check = array_add(arr, new, NULL);
+    if(check != 0){
+        panic("cannot add to array\n");
+    }
+    
+#endif // OPT_A2
 }
 
 /*
@@ -307,13 +250,37 @@ proc_create_runprogram(const char *name)
 	}
 
 #if OPT_A2
-	int result = procarray_add(&procs, proc, NULL);
-    if (result){
-    	// DEBUG(DB_SYSCALL, "procarray_add failed\n");
-    	panic("procarray_add failed\n");
+    lock_acquire("p_lock");
+    update(1, curpid, arr);
+    if(curpid > PID_MAX) {
+        return (struct proc *)ENPROC;
     }
-#endif
-
+    struct proctree *new = init_proctree(proc, curpid);
+    struct proctree *temp;
+    int check = array_add(arr, new, NULL);
+    if(check != 0){
+        panic("cannot add to array\n");
+    }
+    
+    int find = -1;
+    int size = array_num(arr);
+    struct proctree *new2;
+    for(int i = 0; i < size; i++){
+        new2 = array_get(arr, i);
+        if(new2->proctree_pid == curproc->pid){
+            find = i;
+        }
+    }
+    
+    temp = array_get(arr, find);
+    int *c = kmalloc(sizeof(pid_t));
+    *c = new->proctree_pid;
+    array_add(temp->children, c, NULL);
+    
+    lock_release("p_lock");
+#endif // OPT_A2
+    
+    
 #ifdef UW
 	/* open the console - this should always succeed */
 	console_path = kstrdup("con:");
@@ -453,45 +420,110 @@ curproc_setas(struct addrspace *newas)
 }
 
 #if OPT_A2
-void 
-detach_children_proc(struct proc *p)
-{
-	spinlock_acquire(&p->p_lock);
-		for (unsigned i=0; i<procarray_num(&p->p_children); i++) 
-		{
-			struct proc *pd = procarray_get(&p->p_children, i);
-			KASSERT(pd != NULL);
-			pd->p_pproc = NULL;
-		}
-	spinlock_release(&p->p_lock);
-	return;
+int get_exitcode(pid_t proctree_pid){
+    lock_acquire(p_lock);
+    
+    int c = -1;
+    struct proctree *new2;
+    int size = array_num(arr);
+    for(int i = 0; i < size; i++){
+        new2 = array_get(arr, i);
+        if(new2->proctree_pid == proctree_pid){
+            c = i;
+        }
+    }
+    
+    struct proctree *new = array_get(arr, c);
+    KASSERT(new != NULL);
+    KASSERT(new->sem != NULL);
+    
+    lock_release(p_lock);
+    P(new->sem);
+    return new->exitcode;
 }
 
-
-bool 
-if_procchild(struct proc *p, pid_t child_pid)
-{
-	struct proc *childproc = proc_get_by_pid(child_pid);
-	KASSERT(childproc != NULL);
-
-	return (childproc->p_pproc == p);
+int is_children(int find){
+    struct proctree *new = array_get(arr, find);
+    struct proctree *temp_tree;
+    int size = array_num(new->children);
+    
+    int *temp;
+    int temp_find;
+    
+    for(int i = 0; i < size; i++){
+        temp = array_get(new->children, i);
+        temp_find = -1;
+        
+        struct proctree *new3;
+        int size3 = array_num(arr);
+        for(int i = 0; i < size3; i++){
+            new3 = array_get(arr, i);
+            if(new->proctree_pid == *temp){
+                temp_find = i;
+            }
+        }
+        
+        temp_tree = array_get(arr, temp_find);
+        if(temp_tree->exitcode != -1){
+            array_remove(new->children, i);
+            
+            struct proctree *new2 = array_get(arr, temp_find);
+            for(int i = array_num(new2->children)-1; i >= 0; i--){
+                array_remove(new2->children, i);
+            }
+            array_destroy(new2->children);
+            sem_destroy(new2->sem);
+            array_remove(arr, temp_find);
+            
+            i--;
+            size--;
+        }
+    }
+    return 0;
 }
 
-struct proc * 
-proc_get_by_pid(pid_t pid)
-{
-	unsigned i;
-	struct proc *pd = NULL;
-	lock_acquire(ptable_lk);
-		for (i=0; i<procarray_num(&procs); ++i) 
-		{
-			pd = procarray_get(&procs, i);
-			if (pd->p_pid == pid)
-				break;
-		}
-	lock_release(ptable_lk);
-
-	return pd;
+struct lock *get_plock(){
+    return p_lock;
 }
 
-#endif
+struct proctree *init_proctree(struct proc *proc, int curpid){
+    if(curpid == -1){
+        return NULL;
+    }
+    proc->pid = curpid;
+    
+    struct proctree *new = kmalloc(sizeof(struct *proctree));
+    new->proctree_pid = proc->pid;
+    new->exitcode = -1;
+    new->sem = sem_create("tree_sem", 0);
+    
+    struct array *child;
+    child = array_create();
+    array_setsize(child, 0);
+    new->children = child;
+    
+    if(curpid == 0){
+        new->parent = -1;
+    }else{
+        new->parent = curproc->pid;
+    }
+    
+    return new;
+}
+
+int update(int i, int curpid, struct array *arr){
+    int size = array_num(arr);
+    int q = i;
+    struct proctree *new;
+    for(int r = 0; r < size; r++){
+        new = array_get(arr, r);
+        if(new->proctree_pid == q) {
+            q++;
+            return update(q, curpid, arr);
+        }
+    }
+    curpid = q;
+    return q;
+}
+
+#endif // OPT_A2

@@ -44,8 +44,7 @@
 #include <vfs.h>
 #include <syscall.h>
 #include <test.h>
- #include <copyinout.h> //
-#include "opt-A2.h"
+
 /*
  * Load program "progname" and start running it in usermode.
  * Does not return except on error.
@@ -53,16 +52,12 @@
  * Calls vfs_open on progname and thus may destroy it.
  */
 int
-#if OPT_A2
-runprogram(char* progname, int argc, char** argv)
-#else
 runprogram(char *progname)
-#endif
 {
 	struct addrspace *as;
-	struct vnode *v; //an abstract representation of a file.
-	vaddr_t entrypoint, stackptr, argvptr;
-	int result, offset;
+	struct vnode *v;
+	vaddr_t entrypoint, stackptr;
+	int result;
 
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
@@ -102,47 +97,10 @@ runprogram(char *progname)
 		return result;
 	}
 
-#if OPT_A2
-	// copy argv to the stack of user address space
-    char** addr_ptr = kmalloc((argc+1)*sizeof(char*)); // sizeof(char*) = 4 bytes
-    for (int i=argc-1; i>=0; --i){
-        char* arg_str = argv[i];
-        int length = strlen(arg_str)+1;
-        stackptr-=length;
-        result = copyout(arg_str, (userptr_t)stackptr, length);     // assume it automatically fill 0
-        if (result) {
-          /* p_addrspace will go away when curproc is destroyed */
-          return result;
-        }
-        addr_ptr[i] = (char*) stackptr;
-    }
-    addr_ptr[argc] = NULL;
-    
-    offset = stackptr%4;
-    stackptr-=stackptr%4;
-    bzero((void *)stackptr, offset);
-
-    offset = (argc+1)*sizeof(char*);
-    stackptr-=offset;
-    result = copyout(addr_ptr, (userptr_t)stackptr, offset);     // assume it automatically fill 0
-    if (result) {
-      /* p_addrspace will go away when curproc is destroyed */
-      return result;
-    }
-    argvptr = stackptr;
-
-    offset = stackptr%8;
-    stackptr-=stackptr%8;
-    bzero((void *)stackptr, offset);
-
-    kfree(addr_ptr);
-    enter_new_process(argc /*argc*/, (userptr_t)argvptr /*userspace addr of argv*/,
-         stackptr, entrypoint);
-#else
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
 			  stackptr, entrypoint);
-#endif
+	
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
 	return EINVAL;

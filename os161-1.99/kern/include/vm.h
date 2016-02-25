@@ -38,7 +38,7 @@
 
 
 #include <machine/vm.h>
-#include "opt-A3.h"
+
 /* Fault-type arguments to vm_fault() */
 #define VM_FAULT_READ        0    /* A read was attempted */
 #define VM_FAULT_WRITE       1    /* A write was attempted */
@@ -54,25 +54,10 @@ int vm_fault(int faulttype, vaddr_t faultaddress);
 /* Allocate/free kernel heap pages (called by kmalloc/kfree) */
 vaddr_t alloc_kpages(int npages);
 void free_kpages(vaddr_t addr);
-paddr_t getppages(unsigned long npages);
+
 /* TLB shootdown handling called from interprocessor_interrupt */
 void vm_tlbshootdown_all(void);
 void vm_tlbshootdown(const struct tlbshootdown *);
 
-
-#if OPT_A3
-struct coremap_entry {
-	paddr_t paddr;
-	int used;
-	int block_len;
-};
-
-
-int get_rr_victim(void);
-void initialize_coremap(void);
-void releasepages(paddr_t paddr);
-// #else 
-// stataic paddr_t getppages(unsigned long npages);
-#endif
 
 #endif /* _VM_H_ */
