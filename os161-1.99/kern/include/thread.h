@@ -39,6 +39,7 @@
 #include <array.h>
 #include <spinlock.h>
 #include <threadlist.h>
+#include "opt-A2.h"
 
 struct cpu;
 
@@ -106,6 +107,9 @@ struct thread {
 	 */
 
 	/* add more here as needed */
+	#if OPT_A2
+		struct process *t_process;
+	#endif /* OPT_A2 */
 };
 
 /*

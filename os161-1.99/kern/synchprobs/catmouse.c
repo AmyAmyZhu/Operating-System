@@ -8,7 +8,6 @@
  * 05-01-2012: TBB : added comments to try to clarify use/non use of volatile
  * 22-08-2013: TBB: made cat and mouse eating and sleeping time optional parameters
  * 27-04-2014: KMS: change this to simulation driver that invokes student-implemented synch functions
- * 26-01-2015: TBB: adding info about which cat and mouse are eating to be used for debugging
  *
  */
 
@@ -35,22 +34,16 @@
 #include <synch.h>
 #include <synchprobs.h>
 
-/* An animal number that won't ever be used */
-#define INVALID_ANIMAL_NUM  (999999)
-
-/* Useful for debugging */
-static int do_print_state = 0;
-
 /* functions defined and used internally */
 static void initialize_bowls(void);
 static void cleanup_bowls(void);
-static void cat_eat(unsigned int bowlnumber, int eat_time, unsigned int cat_num);
+static void cat_eat(unsigned int bowlnumber, int eat_time);
 static void cat_sleep(int sleep_time);
-static void mouse_eat(unsigned int bowlnumber, int eat_time, unsigned int mouse_num);
+static void mouse_eat(unsigned int bowlnumber, int eat_time);
 static void mouse_sleep(int sleep_time);
 static void cat_simulation(void *ptr, unsigned long catnumber);
 static void mouse_simulation(void *ptr, unsigned long mousenumber);
-static void print_state(void);
+/* static void print_state(void); */
 
 /*
  *
@@ -91,29 +84,15 @@ static struct semaphore *CatMouseWait;
  *
  */
 
-/* An array with of structs with one entry for each bowl
- *  bowl[i-1].animal = 'c' if a cat is eating at the ith bowl
- *  bowl[i-1].animal = 'm' if a mouse is eating at the ith bowl
- *  bowl[i-1].animal = '-' otherwise
- *
- *  If 
- *  bowl[i-1].animal = 'c'
- *  bowl[i-1].which  = 1   means that cat 1 is eating at bowl[i-1]
- *  If 
- *  bowl[i-1].animal = '-' 
- *  bowl[i-1].which  = INVALID_ANIMAL_NUM
- */
+/* a character array with one entry for each bowl
+ *  bowl[i-1] = 'c' if a cat is eating at the ith bowl
+ *  bowl[i-1] = 'm' if a mouse is eating at the ith bowl
+ *  bowl[i-1] = '-' otherwise */
 
-/* The elements within the structure can be changed by multiple 
+/* The elements within the array can be changed by multiple 
  * threads so the contents are volatile.
  */
-struct bowl {
-  volatile char animal;          /* 'c' for cat, 'm' for mouse */
-  volatile unsigned int which;   /* Which cat or mouse         */
-};
-
-struct bowl *bowls;
-
+static volatile char *bowls;
 
 /* how many cats are currently eating? 
  * modified by multiple threads, so volatile 
@@ -164,14 +143,13 @@ initialize_bowls()
 
   KASSERT(NumBowls > 0);
 
-  bowls = kmalloc(NumBowls*sizeof(struct bowl));
+  bowls = kmalloc(NumBowls*sizeof(char));
   if (bowls == NULL) {
     panic("initialize_bowls: unable to allocate space for %d bowls\n",NumBowls);
   }
   /* initialize bowls */
   for(i=0;i<NumBowls;i++) {
-    bowls[i].animal = '-';
-    bowls[i].which = INVALID_ANIMAL_NUM;
+    bowls[i] = '-';
   }
   eating_cats_count = eating_mice_count = 0;
 
@@ -228,32 +206,6 @@ cleanup_bowls()
 }
 
 /*
- * print_state_on/off()
- * 
- * Purpose:
- *   Turn the printing of the simulation state on/off.
- *
- * Arguments:
- *   none
- *
- * Returns:
- *   nothing
- */
-
-void
-print_state_on()
-{
-  do_print_state = 1;
-}
-
-void
-print_state_off()
-{
-  do_print_state = 0;
-}
-
-
-/*
  * print_state()
  * 
  * Purpose:
@@ -271,34 +223,21 @@ print_state_off()
  *   mutual exclusion
  */
 
+/*   not currently used */
+/*
 static void
 print_state()
 {
   int i;
 
-  if (NumCats > 100 || NumMice > 100) {
-    panic("Formatting is set up to only handle two digit numbers for cat and mice numbers\n");
-  }
-
-  if (!do_print_state) {
-    return;
-  }
-
   kprintf(" Eating Cats: %3d  Eating Mice: %3d   ",eating_cats_count,
     eating_mice_count);
-
   for(i=0;i<NumBowls;i++) {
-    kprintf("%c",bowls[i].animal);
-    if (bowls[i].which == INVALID_ANIMAL_NUM) {
-      kprintf("%2s", "--");
-    } else {
-      kprintf("%02d",bowls[i].which);
-    }
-    kprintf(" ");
+    kprintf("%c",bowls[i]);
   }
-  kprintf("\n");
   return;
 }
+*/
 
 
 /*
@@ -311,8 +250,6 @@ print_state()
  *
  * Arguments:
  *   unsigned int bowlnumber: which bowl the cat should eat from
- *   int eat_time: how long to eat
- *   unsigned int cat_num: which cat is eating (used for debugging)
  *
  * Returns:
  *   nothing
@@ -320,7 +257,7 @@ print_state()
  */
 
 void
-cat_eat(unsigned int bowlnumber, int eat_time, unsigned int cat_num)
+cat_eat(unsigned int bowlnumber, int eat_time)
 {
 
   /* check the bowl number */
@@ -333,27 +270,23 @@ cat_eat(unsigned int bowlnumber, int eat_time, unsigned int cat_num)
 
   /* first check whether allowing this cat to eat will
    * violate any simulation requirements */
-  if (bowls[bowlnumber-1].animal == 'c') {
+  if (bowls[bowlnumber-1] == 'c') {
     /* there is already a cat eating at the specified bowl */
-    panic("cat_eat: attempt to make cat %d eat from bowl %d while cat %d is already eating there!\n",
-           cat_num, bowlnumber, bowls[bowlnumber-1].which);
+    panic("cat_eat: attempt to make two cats eat from bowl %d!\n",bowlnumber);
   }
   if (eating_mice_count > 0) {
     /* there is already a mouse eating at some bowl */
-    panic("cat_eat: attempt to make cat %d eat while mice are eating!\n", cat_num);
+    panic("cat_eat: attempt to make a cat eat while mice are eating!\n");
   }
-  KASSERT(bowls[bowlnumber-1].animal == '-');
-  KASSERT(bowls[bowlnumber-1].which == INVALID_ANIMAL_NUM);
+  KASSERT(bowls[bowlnumber-1]=='-');
   KASSERT(eating_mice_count == 0);
 
   /* now update the state to indicate that the cat is eating */
   eating_cats_count += 1;
-  bowls[bowlnumber-1].animal = 'c';
-  bowls[bowlnumber-1].which = cat_num;
-  print_state();
+  bowls[bowlnumber-1] = 'c';
 
-  DEBUG(DB_SYNCPROB,"cat %d starts to eat at bowl %d [%d:%d]\n",
-	cat_num, bowlnumber, eating_cats_count, eating_mice_count);
+  DEBUG(DB_SYNCPROB,"cat starts to eat at bowl %d [%d:%d]\n",
+	bowlnumber,eating_cats_count,eating_mice_count);
   V(mutex);  // end critical section
 
   /* simulate eating by introducing a delay
@@ -364,14 +297,12 @@ cat_eat(unsigned int bowlnumber, int eat_time, unsigned int cat_num)
    * the cat is finished eating */
   P(mutex);  // start critical section
   KASSERT(eating_cats_count > 0);
-  KASSERT(bowls[bowlnumber-1].animal=='c');
+  KASSERT(bowls[bowlnumber-1]=='c');
   eating_cats_count -= 1;
-  bowls[bowlnumber-1].animal='-';
-  bowls[bowlnumber-1].which=INVALID_ANIMAL_NUM;
-  print_state();
+  bowls[bowlnumber-1]='-';
 
-  DEBUG(DB_SYNCPROB,"cat %d finished eating at bowl %d [%d:%d]\n",
-	cat_num,bowlnumber,eating_cats_count,eating_mice_count);
+  DEBUG(DB_SYNCPROB,"cat finished eating at bowl %d [%d:%d]\n",
+	bowlnumber,eating_cats_count,eating_mice_count);
   V(mutex);  // end critical section
 
   return;
@@ -407,8 +338,6 @@ cat_sleep(int sleep_time)
  *
  * Arguments:
  *   unsigned int bowlnumber: which bowl the mouse should eat from
- *   int eat_time: how long to eat for
- *   unsigned int mouse_num: which mouse is eating (for debugging)
  *
  * Returns:
  *   nothing
@@ -416,7 +345,7 @@ cat_sleep(int sleep_time)
  */
 
 void
-mouse_eat(unsigned int bowlnumber, int eat_time, unsigned int mouse_num)
+mouse_eat(unsigned int bowlnumber, int eat_time)
 {
   /* check the bowl number */
   KASSERT(bowlnumber > 0);
@@ -428,27 +357,23 @@ mouse_eat(unsigned int bowlnumber, int eat_time, unsigned int mouse_num)
 
   /* first check whether allowing this mouse to eat will
    * violate any simulation requirements */
-  if (bowls[bowlnumber-1].animal == 'm') {
+  if (bowls[bowlnumber-1] == 'm') {
     /* there is already a mouse eating at the specified bowl */
-    panic("mouse_eat: attempt to make mouse %d eat from bowl %d while mouse %d is there!\n",
-           mouse_num, bowlnumber, bowls[bowlnumber-1].which);
+    panic("mouse_eat: attempt to make two mice eat from bowl %d!\n",bowlnumber);
   }
   if (eating_cats_count > 0) {
     /* there is already a cat eating at some bowl */
-    panic("mouse_eat: attempt to make mouse %d eat while cats are eating!\n", mouse_num);
+    panic("mouse_eat: attempt to make a mouse eat while cats are eating!\n");
   }
-  KASSERT(bowls[bowlnumber-1].animal=='-');
-  KASSERT(bowls[bowlnumber-1].which==INVALID_ANIMAL_NUM);
+  KASSERT(bowls[bowlnumber-1]=='-');
   KASSERT(eating_cats_count == 0);
 
   /* now update the state to indicate that the mouse is eating */
   eating_mice_count += 1;
-  bowls[bowlnumber-1].animal = 'm';
-  bowls[bowlnumber-1].which = mouse_num;
-  print_state();
+  bowls[bowlnumber-1] = 'm';
 
-  DEBUG(DB_SYNCPROB,"mouse %d starts to eat at bowl %d [%d:%d]\n",
-	mouse_num,bowlnumber,eating_cats_count,eating_mice_count);
+  DEBUG(DB_SYNCPROB,"mouse starts to eat at bowl %d [%d:%d]\n",
+	bowlnumber,eating_cats_count,eating_mice_count);
   V(mutex);  // end critical section
 
   /* simulate eating by introducing a delay
@@ -461,14 +386,11 @@ mouse_eat(unsigned int bowlnumber, int eat_time, unsigned int mouse_num)
 
   KASSERT(eating_mice_count > 0);
   eating_mice_count -= 1;
-  KASSERT(bowls[bowlnumber-1].animal=='m');
-  KASSERT(bowls[bowlnumber-1].which==mouse_num);
-  bowls[bowlnumber-1].animal='-';
-  bowls[bowlnumber-1].which=INVALID_ANIMAL_NUM;
-  print_state();
+  KASSERT(bowls[bowlnumber-1]=='m');
+  bowls[bowlnumber-1]='-';
 
-  DEBUG(DB_SYNCPROB,"mouse %d finishes eating at bowl %d [%d:%d]\n",
-	mouse_num,bowlnumber,eating_cats_count,eating_mice_count);
+  DEBUG(DB_SYNCPROB,"mouse finishes eating at bowl %d [%d:%d]\n",
+	bowlnumber,eating_cats_count,eating_mice_count);
   V(mutex);  // end critical section
   return;
 }
@@ -535,7 +457,7 @@ cat_simulation(void * unusedpointer,
     gettime(&after_sec,&after_nsec);
 
     /* make the cat eat */
-    cat_eat(bowl, CatEatTime, catnumber);
+    cat_eat(bowl, CatEatTime);
 
     cat_after_eating(bowl); /* student-implemented function */
 
@@ -598,7 +520,7 @@ mouse_simulation(void * unusedpointer,
     gettime(&after_sec,&after_nsec);
 
     /* make the mouse eat */
-    mouse_eat(bowl, MouseEatTime, mousenumber);
+    mouse_eat(bowl, MouseEatTime);
 
     mouse_after_eating(bowl); /* student-implemented function */
 
@@ -710,10 +632,6 @@ catmouse(int nargs,
     }
   }
 
-  if ((NumMice >= INVALID_ANIMAL_NUM) || (NumCats >= INVALID_ANIMAL_NUM)) {
-    panic("Trying to use too many cats or mice: limit =  %d\n", INVALID_ANIMAL_NUM);
-  }
-
   kprintf("Using %d bowls, %d cats, and %d mice. Looping %d times.\n",
           NumBowls,NumCats,NumMice,NumLoops);
   kprintf("Using cat eating time %d, cat sleeping time %d\n", CatEatTime, CatSleepTime);
@@ -747,7 +665,7 @@ catmouse(int nargs,
     if (catindex < NumMice) {
       error = thread_fork("mouse_simulation thread", NULL, mouse_simulation, NULL, catindex);
       if (error) {
-	panic("mouse_simulation: thread_fork failed: %s\n",strerror(error));
+  panic("mouse_simulation: thread_fork failed: %s\n",strerror(error));
       }
     } 
   }
@@ -774,7 +692,7 @@ catmouse(int nargs,
   total_eating_milliseconds = (NumCats*CatEatTime + NumMice*MouseEatTime)*NumLoops*1000;
   if (total_bowl_milliseconds > 0) {
     utilization_percent = total_eating_milliseconds*100/total_bowl_milliseconds;
-    kprintf("STATS: Bowl utilization: %d%%\n",utilization_percent);
+    kprintf("Bowl utilization: %d%%\n",utilization_percent);
   }
 
   /* clean up the semaphore that we created */
@@ -789,14 +707,12 @@ catmouse(int nargs,
   if (cat_wait_count > 0) {
     /* some rounding error here - not significant if cat_wait_count << 1000000 */
     mean_cat_wait_usecs = (cat_total_wait_secs*1000000+cat_total_wait_nsecs/1000)/cat_wait_count;
-    kprintf("STATS: Mean cat waiting time: %d.%d seconds\n",
-             mean_cat_wait_usecs/1000000,mean_cat_wait_usecs%1000000);
+    kprintf("Mean cat waiting time: %d.%d seconds\n",mean_cat_wait_usecs/1000000,mean_cat_wait_usecs%1000000);
   }
   if (mouse_wait_count > 0) {
     /* some rounding error here - not significant if mouse_wait_count << 1000000 */
     mean_mouse_wait_usecs = (mouse_total_wait_secs*1000000+mouse_total_wait_nsecs/1000)/mouse_wait_count;
-    kprintf("STATS: Mean mouse waiting time: %d.%d seconds\n",
-             mean_mouse_wait_usecs/1000000,mean_mouse_wait_usecs%1000000);
+    kprintf("Mean mouse waiting time: %d.%d seconds\n",mean_mouse_wait_usecs/1000000,mean_mouse_wait_usecs%1000000);
   }
 
   return 0;
