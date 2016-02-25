@@ -14,7 +14,6 @@
 #include <vfs.h>
 #include <kern/fcntl.h>
 
-
 #if OPT_A2
 extern struct array *arr;
 #endif // OPT_A2
