@@ -79,8 +79,12 @@ int num;
 int limit;
 
 int add_proctree(struct proc *p, struct proc *new){
-    KASSERT(proc_lock != NULL);
-    KASSERT(p != NULL);
+    //KASSERT(proc_lock != NULL);
+    //KASSERT(p != NULL);
+    
+    if(p != NULL){
+        return -1;
+    }
     
     /*if(num == limit-1){
         if(limit < 256) {
