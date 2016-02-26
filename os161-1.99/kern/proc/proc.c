@@ -126,7 +126,7 @@ int add_proctree(struct proc *p, struct proc *new){
     return change;
 }
 
-/*void remove_proctree(struct proc *p){
+void remove_proctree(struct proc *p){
     KASSERT(p != NULL);
     int pid = get_curpid(p);
     array_set(proctree, pid, NULL);
@@ -136,18 +136,6 @@ int add_proctree(struct proc *p, struct proc *new){
     proc_destroy(p);
     DEBUG(DB_EXEC, "finish remove_proctree\n");
     //kprintf("Here!!leave proc destroy\n");
-}*/
-
-void remove_proctree(struct proc *proc_removed) {
-    KASSERT(proc_removed != NULL);
-    
-    int pid = get_curpid(proc_removed);
-    array_set(proctree, pid, NULL);
-    num--;
-    
-    /* if this is the last user process in the system, proc_destroy()
-     will wake up the kernel menu thread */
-    proc_destroy(proc_removed);
 }
 
 void proc_exit(struct proc *p, int exitcode){
@@ -353,25 +341,25 @@ proc_destroy(struct proc *proc)
     }
 #endif // UW
     
-    threadarray_cleanup(&proc->p_threads);
-    spinlock_cleanup(&proc->p_lock);
+    //threadarray_cleanup(&proc->p_threads);
+    //spinlock_cleanup(&proc->p_lock);
     
-    kfree(proc->p_name);
-    kfree(proc);
+    //kfree(proc->p_name);
+    //kfree(proc);
     
 #ifdef UW
     /* decrement the process count */
     /* note: kproc is not included in the process count, but proc_destroy
      is never called on kproc (see KASSERT above), so we're OK to decrement
      the proc_count unconditionally here */
-    P(proc_count_mutex);
-    KASSERT(proc_count > 0);
-    proc_count--;
+    //P(proc_count_mutex);
+    //KASSERT(proc_count > 0);
+    //proc_count--;
     /* signal the kernel menu thread if the process count has reached zero */
-    if (proc_count == 0) {
-        V(no_proc_sem);
-    }
-    V(proc_count_mutex);
+    //if (proc_count == 0) {
+      //  V(no_proc_sem);
+    //}
+    //V(proc_count_mutex);
 #endif // UW
     
     
