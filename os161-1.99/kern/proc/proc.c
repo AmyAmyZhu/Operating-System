@@ -141,7 +141,7 @@ void proc_exit(struct proc *p, int exitcode){
     KASSERT(p->curpid > 0);
     
     set_state(p, 0);
-    set_exitcode(p, _MKWAIT_EXIT(exitcode));
+    /*set_exitcode(p, _MKWAIT_EXIT(exitcode));
     int exit_pid = get_curpid(p);
     
     for(int i = 1; i < limit; i++) {
@@ -160,7 +160,7 @@ void proc_exit(struct proc *p, int exitcode){
         remove_proctree(p);
     } else {
         cv_signal(p->wait, proc_lock);
-    }
+    }*/
 }
 
 struct proc* get_proctree(pid_t pid){
