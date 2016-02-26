@@ -78,7 +78,7 @@ struct semaphore *no_proc_sem;
 int num;
 int limit;
 
-int add_proctree(struct proc *p, struct proc *new){
+/*int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
     
@@ -149,7 +149,7 @@ void proc_exit(struct proc *p, int exitcode){
 struct proc* get_proctree(pid_t pid){
     return array_get(proctree, pid);
 }
-
+*/
 
 
 int get_state(struct proc *proc){
