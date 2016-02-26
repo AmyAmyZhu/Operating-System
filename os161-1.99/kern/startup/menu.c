@@ -45,6 +45,7 @@
 #include "opt-synchprobs.h"
 #include "opt-sfs.h"
 #include "opt-net.h"
+// #include "../arch/mips/vm/smartvm.h"
 
 /*
  * In-kernel menu and command dispatcher.
@@ -93,19 +94,34 @@ cmd_progthread(void *ptr, unsigned long nargs)
 
 	KASSERT(nargs >= 1);
 
-	if (nargs > 2) {
-		kprintf("Warning: argument passing from menu not supported\n");
-	}
-
 	/* Hope we fit. */
 	KASSERT(strlen(args[0]) < sizeof(progname));
 
 	strcpy(progname, args[0]);
 
-	result = runprogram(progname);
+	// size_t freeCount = 0;
+	// for (size_t i = 0; i < coremap->cm_len; i++) {
+	//   if (coremap->cm_entries[i].status == CM_FREE) {
+	//     freeCount++;
+	//   }
+	//   else if (coremap->cm_entries[i].status == CM_INUSE) {
+	// 		DEBUG(DB_EXEC, "Found an IN-USE COREMAP at %d\n", i);
+	// 		if (i == 33) {
+	// 			coremap->cm_entries[i].status = CM_FREE;
+  //        coremap->cm_entries[i].frameCount = 0;
+  //        kfree(((void*)coremap->cm_entries[i].vaddr));
+	// 		}
+	//   }
+	// }
+
+	// DEBUG(DB_EXEC, "Starting command line program with %d FREE COREMAPS\n", freeCount);
+	result = runprogram(progname, (char**)ptr, (size_t)nargs);
 	if (result) {
 		kprintf("Running program %s failed: %s\n", args[0],
 			strerror(result));
+
+		// Prevent the kernel from crashing on memory outage.
+    sys__exit(result);
 		return;
 	}
 
@@ -178,6 +194,21 @@ cmd_prog(int nargs, char **args)
 	nargs--;
 
 	return common_prog(nargs, args);
+}
+/*
+ * Command for enabled DB_THREAD Debug messages.
+ */
+
+static
+int
+cmd_dth(int nargs, char **args)
+{
+	(void)nargs;
+	(void)args;
+
+	dbflags = DB_THREADS;
+
+	return 0;
 }
 
 /*
@@ -426,6 +457,7 @@ showmenu(const char *name, const char *x[])
 }
 
 static const char *opsmenu[] = {
+	"[dth]     Enable Thread Debug       ",
 	"[s]       Shell                     ",
 	"[p]       Other program             ",
 	"[mount]   Mount a filesystem        ",
@@ -501,7 +533,6 @@ static const char *mainmenu[] = {
 	"[sp1] Whale Mating                  ",
 #ifdef UW
 	"[sp2] Cat/mouse                     ",
-	"[sp3] Traffic                       ",
 #endif /* UW */
 #endif
 	"[kh] Kernel heap stats              ",
@@ -520,20 +551,6 @@ cmd_mainmenu(int n, char **a)
 	return 0;
 }
 
-//A0 ADDED!!!!!!///
-static
-int
-cmd_dth(int n, char **a)
-{
-    (void)n;
-    (void)a;
-    
-    dbflags = DB_THREADS;
-    
-    return 0;
-}
-
-
 ////////////////////////////////////////
 //
 // Command table.
@@ -548,9 +565,9 @@ static struct {
 	{ "help",	cmd_mainmenu },
 	{ "?o",		cmd_opsmenu },
 	{ "?t",		cmd_testmenu },
-    { "dth",    cmd_dth      },
 
 	/* operations */
+	{ "dth",		cmd_dth },
 	{ "s",		cmd_shell },
 	{ "p",		cmd_prog },
 	{ "mount",	cmd_mount },
@@ -570,7 +587,6 @@ static struct {
 	{ "sp1",	whalemating },
 #ifdef UW
 	{ "sp2",	catmouse },
-	{ "sp3",	traffic_simulation },
 #endif /* UW */
 #endif
 
@@ -686,7 +702,8 @@ menu_execute(char *line, int isargs)
 			kprintf("OS/161 kernel: %s\n", command);
 		}
 
-		result = cmd_dispatch(command);
+		// Commands should return 0 otherwise the menu command failed
+		result = cmd_dispatch(command); 
 		if (result) {
 			kprintf("Menu command failed: %s\n", strerror(result));
 			if (isargs) {

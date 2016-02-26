@@ -27,7 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
@@ -125,25 +124,29 @@ syscall(struct trapframe *tf)
 	  err = sys_getpid((pid_t *)&retval);
 	  break;
 	case SYS_waitpid:
-	  err = sys_waitpid((pid_t)tf->tf_a0,
-			    (userptr_t)tf->tf_a1,
-			    (int)tf->tf_a2,
-			    (pid_t *)&retval);
+	  err = sys_waitpid((pid_t)tf->tf_a0, // pid argument for who you want to wait on
+			    (userptr_t)tf->tf_a1, // status argument for where you want the exit code to go
+			    (int)tf->tf_a2, // additional arguments as options
+			    (pid_t *)&retval); // like the exit system call, passes the return value where you should store the system
+	  			// call's desired return value. For waitpid, return the pid whose exit status is stored in `status`.
 	  break;
+	case SYS_fork:
+		// call sys_fork with return value that will, if succeeded, contain the child PID for the parent process.
+		err = sys_fork(tf, (pid_t *)&retval);
+		break;
+	case SYS_execv:
+		err = sys_execv((char*)tf->tf_a0, (userptr_t)tf->tf_a1);
+		break;
+
 #endif // UW
 
 	    /* Add stuff here */
-#if OPT_A2
-    case SYS_fork:
-        err = sys_fork(tf, (pid_t *)&retval);
-        break;
-#endif // OPT_A2
+ 
 	default:
 	  kprintf("Unknown syscall %d\n", callno);
 	  err = ENOSYS;
 	  break;
 	}
-
 
 	if (err) {
 		/*
@@ -151,12 +154,12 @@ syscall(struct trapframe *tf)
 		 * userlevel to a return value of -1 and the error
 		 * code in errno.
 		 */
-		tf->tf_v0 = err;
+		tf->tf_v0 = err; // on failure, v0 contains the error code, which is transferred to errno and replaced with -1 in the syscall.S
 		tf->tf_a3 = 1;      /* signal an error */
 	}
 	else {
 		/* Success. */
-		tf->tf_v0 = retval;
+		tf->tf_v0 = retval; // on success, the return value should go in v0
 		tf->tf_a3 = 0;      /* signal no error */
 	}
 	
@@ -181,26 +184,24 @@ syscall(struct trapframe *tf)
  *
  * Thus, you can trash it and do things another way if you prefer.
  */
-//#if OPT_A2
-void enter_forked_process(void *argc1, unsigned long argc2)
+void
+enter_forked_process(void *data1, unsigned long data2)
 {
-    DEBUG(DB_EXEC, "start enter_forked_process\n");
-    KASSERT(argc2 == 1);
-    // code you created or modified for ASST2 goes here
-    as_activate();
+	KASSERT(data2 == 1);
+	
+	// allocate trapframe on new process' kernel stack
+	// instead of kernel heap
+	
+	// the address space was not activated, do so now that curproc is the desired address space
+	as_activate();
 
-    struct trapframe stack = *((struct trapframe *)argc1);
-    kfree(argc1);
-    
-    stack.tf_a3 = 0;
-    stack.tf_v0 = 0; // no children
-    /*
-     * Now, advance the program counter, to avoid restarting
-     * the syscall over and over again.
-     */
-    stack.tf_epc += 4;
-    
-    mips_usermode(&stack);
-    DEBUG(DB_EXEC, "finish enter_forked_process\n");
+	struct trapframe newtf = *((struct trapframe *)data1);
+	kfree(data1); // Now that the tf is on the kernel thread stack, remove it from the kernel heap
+
+	newtf.tf_epc += 4; // advance epc so that we don't repeat syscall
+	newtf.tf_a3 = 0; // indicate it was a successful fork
+	newtf.tf_v0 = 0; // return value of child should be 0, we're new to the world!
+
+
+	mips_usermode(&newtf);
 }
-//#endif /* OPT_A2 */

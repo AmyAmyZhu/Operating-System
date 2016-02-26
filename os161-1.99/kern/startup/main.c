@@ -40,6 +40,7 @@
 #include <clock.h>
 #include <thread.h>
 #include <proc.h>
+#include <proctable.h>
 #include <current.h>
 #include <synch.h>
 #include <vm.h>
@@ -50,7 +51,6 @@
 #include <test.h>
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
-
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -101,16 +101,19 @@ boot(void)
 	kprintf("%s", harvard_copyright);
 	kprintf("\n");
 
-	kprintf("Zefang Zhu's system version %s (%s #%d)\n", 
+	kprintf("Dan Reynolds' system version %s (%s #%d)\n", 
 		GROUP_VERSION, buildconfig, buildversion);
 	kprintf("\n");
 
 	/* Early initialization. */
 	ram_bootstrap();
-    
-    DEBUG(DB_EXEC, "start init_proctree\n");
-    init_proctree();
-    DEBUG(DB_EXEC, "finish init_proctree\n");
+
+	// System proctable setup for A2A
+  DEBUG(DB_EXEC, "Bootstrapping proctable\n");
+
+	proctable_bootstrap();
+
+  DEBUG(DB_EXEC, "Finished Bootstrapping proctable\n");
 
 	proc_bootstrap();
 	thread_bootstrap();

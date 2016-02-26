@@ -36,9 +36,9 @@
  * Note: curproc is defined by <current.h>.
  */
 
-#include "opt-A2.h"
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
+#include "opt-A2.h"
 
 struct addrspace;
 struct vnode;
@@ -46,24 +46,9 @@ struct vnode;
 struct semaphore;
 #endif // UW
 
-//#if OPT_A2
-#define PEXIT 0;
-#define PPORCESS 1;
-#define PNOPID -1;
-
-
-DECLARRAY(proc);
-DEFARRAY(proc, INLINE);
-
-struct array *proctree;
-struct lock *proc_lock;
-
-void init_proctree(void);
-int add_proctree(struct proc *p, struct proc *new);
-void remove_proctree(struct proc *p);
-struct proc* get_proctree(pid_t pid);
-void proc_exit(struct proc *p, int exitcode);
-//#endif //OPT_A2
+#define PROC_EXITED 0
+#define PROC_RUNNING 1
+#define PROC_NO_PID -1
 
 /*
  * Process structure.
@@ -89,11 +74,13 @@ struct proc {
 #endif
 
 	/* add more material here as needed */
-    int state;
-    int exitcode;
-    pid_t curpid;
-    pid_t parent_pid;
-    struct cv *wait;
+
+  pid_t p_pid; // Process id of current process.
+  pid_t p_ppid; // Process id of parent process.
+  int p_state; // State of the process, running or exited.
+  int p_exitcode; // Exit code.
+  struct cv *wait_cv; // parent proc waits on this cv until its child exits.
+
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -125,16 +112,28 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
-//#if OPT_A2
-int get_state(struct proc *proc);
-int get_exitcode(struct proc *proc);
-int get_curpid(struct proc *proc);
-int get_parent_pid(struct proc *proc);
+// Returns the process' exitcode
+int getExitcode(struct proc *proc);
 
-void set_state(struct proc *proc, int state);
-void set_exitcode(struct proc *proc, int exitcode);
-void set_curpid(struct proc *proc, int pid);
-void set_parent_pid(struct proc *proc, int pid);
-//#endif // OPT_A2
+// Returns the process' PID
+int getPID(struct proc *proc);
+
+// Returns the process' PPID
+int getPPID(struct proc *proc);
+
+// Returns the process' state
+int getState(struct proc *proc);
+
+// Sets the process' exitcode
+void setExitcode(struct proc *proc, int exitcode);
+
+// Sets the process' PID
+void setPID(struct proc *proc, int newPID);
+
+// Sets the process' PPID
+void setPPID(struct proc *proc, int newPPID);
+
+// Sets the process' state
+void setState(struct proc *proc, int newState);
 
 #endif /* _PROC_H_ */
