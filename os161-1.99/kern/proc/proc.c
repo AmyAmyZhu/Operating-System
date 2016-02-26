@@ -336,9 +336,9 @@ proc_destroy(struct proc *proc)
 #endif // UW
     
 #ifdef UW
-    //if (proc->console) {
-      //  vfs_close(proc->console);
-    //}
+    if (proc->console) {
+        vfs_close(proc->console);
+    }
 #endif // UW
     
     //threadarray_cleanup(&proc->p_threads);
