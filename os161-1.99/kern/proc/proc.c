@@ -132,7 +132,9 @@ void remove_proctree(struct proc *p){
     array_set(proctree, pid, NULL);
     num--;
     //kprintf("Here!!come proc destroy\n");
+    DEBUG(DB_EXEC, "start remove_proctree\n");
     proc_destroy(p);
+    DEBUG(DB_EXEC, "finish remove_proctree\n");
     //kprintf("Here!!leave proc destroy\n");
 }
 
@@ -158,7 +160,9 @@ void proc_exit(struct proc *p, int exitcode){
     
     if(get_parent_pid(p) == -1){
         //kprintf("Here!!come remove proctree\n");
+        DEBUG(DB_EXEC, "start proc_exit\n");
         remove_proctree(p);
+        DEBUG(DB_EXEC, "end proc_exit\n");
         //kprintf("Here!!leave remove proctree\n");
     } else {
         //cv_signal(p->wait, proc_lock);
