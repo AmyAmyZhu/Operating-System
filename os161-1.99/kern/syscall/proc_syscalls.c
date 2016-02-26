@@ -40,7 +40,7 @@ void sys__exit(int exitcode) {
   // Ensure synchronization in case another process is trying to getpid()
   // and inform the proctable that the process is exiting.
   lock_acquire(proc_lock);
-  proctable_exit_process(p, exitcode);
+  proc_exit(p, exitcode);
   lock_release(proc_lock);
 
   thread_exit();
@@ -56,7 +56,7 @@ sys_getpid(pid_t *retval)
   struct proc *p = curproc;
 
   // return the current process' PID.
-  *retval = getPID(p);
+  *retval = get_curpid(p);
   return(0);
 }
 
@@ -74,7 +74,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
   }
 
   lock_acquire(proc_lock);
-    struct proc *child = proctable_get_process(pid);
+    struct proc *child = get_proctree(pid);
     struct proc *parent = curproc;
 
     // Error if PID waited on does not refer to a valid process
@@ -82,7 +82,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
       result = ESRCH;
     }
     // Error if requested PID was not a child of parent process
-    else if (getPPID(child) != getPID(parent)) {
+    else if (get_parent_pid(child) != get_curpid(parent)) {
       result = ECHILD;
     }
 
@@ -103,7 +103,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
     // We are now awoken because we waited for the child to exit,
     // or the child had already exited. Either way, we can now collect
     // their exit code. We will remove them from proctable when we exit.
-    exitstatus = getExitcode(child);
+    exitstatus = get_exitcode(child);
 
   lock_release(proc_lock);
 
@@ -134,7 +134,7 @@ int sys_fork(struct trapframe* tf, pid_t *retval) {
   // the parent needs to return the retval of the child
   // synchronization is not required since the only one interested
   // in the child process is the parent and we are the parent
-  *retval = getPID(proc_created);
+  *retval = get_curpid(proc_created);
 
   // allocate duplicate trapframe on kernel heap for child process
   struct trapframe* dupTrap = kmalloc(sizeof(struct trapframe));

@@ -127,11 +127,11 @@ int proctable_add_process(struct proc *proc_created, struct proc *proc_parent) {
     }
     
     // Check to see if a PID was available
-    if (getPID(proc_created) == PROC_NO_PID) {
+    if (get_curpid(proc_created) == PROC_NO_PID) {
         return -1;
     }
     
-    DEBUG(DB_EXEC, "New process in table: %d\n", getPID(proc_created));
+    DEBUG(DB_EXEC, "New process in table: %d\n", get_curpid(proc_created));
     
     // Increase the count of processes in the procTable
     procCount++;
@@ -141,7 +141,7 @@ int proctable_add_process(struct proc *proc_created, struct proc *proc_parent) {
         setPPID(proc_created, PROC_NO_PID);
     }
     else {
-        setPPID(proc_created, getPID(proc_parent));
+        setPPID(proc_created, get_curpid(proc_parent));
     }
     
     // Finally, set the state of the proces to running
@@ -156,7 +156,7 @@ int proctable_add_process(struct proc *proc_created, struct proc *proc_parent) {
 // @proc_exited is the process that has finished
 // @exitcode is the exitcode the process finished with
 
-void proctable_exit_process(struct proc *proc_exited, int exitcode) {
+void proc_exit(struct proc *proc_exited, int exitcode) {
     // DEBUG(DB_EXEC, "Exiting PID: %d from proctable\n", getPID(proc_exited));
     
     KASSERT(proc_exited != NULL);
@@ -172,12 +172,12 @@ void proctable_exit_process(struct proc *proc_exited, int exitcode) {
     // If proc_exited has living children, they should now have a NULL parent.
     // If proc_exited has dead children, they should now be destroyed.
     
-    int exitedPID = getPID(proc_exited);
+    int exitedPID = get_curpid(proc_exited);
     
     // Find the children of proc_exited.
     for (int i = MIN_PID; i < pidLimit; i++) {
         struct proc* cur = array_get(procTable, i);
-        if (cur != NULL && getPPID(cur) == exitedPID) {
+        if (cur != NULL && get_parent_pid(cur) == exitedPID) {
             // Check state of child
             int state = getState(cur);
             
@@ -194,7 +194,7 @@ void proctable_exit_process(struct proc *proc_exited, int exitcode) {
     }
     
     // If proc_exited has no parent, it can be removed
-    if (getPPID(proc_exited) == PROC_NO_PID) {
+    if (get_parent_pid(proc_exited) == PROC_NO_PID) {
         proctable_remove_process(proc_exited);
     }
     
@@ -214,7 +214,7 @@ void proctable_exit_process(struct proc *proc_exited, int exitcode) {
 void proctable_remove_process(struct proc *proc_removed) {
     KASSERT(proc_removed != NULL);
     
-    int pid = getPID(proc_removed);
+    int pid = get_curpid(proc_removed);
     array_set(procTable, pid, NULL);
     procCount--;
     
@@ -226,7 +226,7 @@ void proctable_remove_process(struct proc *proc_removed) {
 // Return a process from the process table
 // @pid is the PID of the process to be retrieved
 
-struct proc* proctable_get_process(pid_t pid) {
+struct proc* get_proctree(pid_t pid) {
     if (pid < MIN_PID || pid > MAX_PID) {
         return NULL;
     }
@@ -236,21 +236,21 @@ struct proc* proctable_get_process(pid_t pid) {
 
 
 // Returns the process' exitcode
-int getExitcode(struct proc *proc) {
+int get_exitcode(struct proc *proc) {
 	KASSERT(proc != NULL);
 
 	return proc->p_exitcode;
 }
 
 // Returns the processes' PID
-int getPID(struct proc *proc) {
+int get_curpid(struct proc *proc) {
 	KASSERT(proc != NULL);
 
 	return proc->p_pid;
 }
 
 // Returns the processes' PPID
-int getPPID(struct proc *proc) {
+int get_parent_pid(struct proc *proc) {
 	KASSERT(proc != NULL);
 
 	return proc->p_ppid;
