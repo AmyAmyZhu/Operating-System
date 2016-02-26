@@ -118,7 +118,7 @@ sys_waitpid(pid_t pid,
         return result;
     }
     
-    while(get_state(children) == 1){
+    while(getState(children) == 1){
         cv_wait(children->wait, proc_lock);
     }
     exitstatus = get_exitcode(children);
