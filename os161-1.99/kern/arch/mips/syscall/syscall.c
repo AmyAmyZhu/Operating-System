@@ -182,7 +182,6 @@ syscall(struct trapframe *tf)
  * Thus, you can trash it and do things another way if you prefer.
  */
 //#if OPT_A2
-void
 void enter_forked_process(void *argc1, unsigned long argc2)
 {
     KASSERT(argc2 == 1);
