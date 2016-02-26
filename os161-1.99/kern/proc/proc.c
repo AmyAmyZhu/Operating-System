@@ -299,8 +299,8 @@ proc_destroy(struct proc *proc)
      * from the process.
      */
     
-    //KASSERT(proc != NULL);
-    //KASSERT(proc != kproc);
+    KASSERT(proc != NULL);
+    KASSERT(proc != kproc);
     
     /*
      * We don't take p_lock in here because we must have the only
