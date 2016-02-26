@@ -92,7 +92,7 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
-    /*for(int i = 1; i < limit; i++){
+    for(int i = 1; i < limit; i++){
         if(array_get(proctree, i) == NULL){
             set_curpid(p, i);
             array_set(proctree, i, p);
@@ -100,8 +100,8 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
-    if(get_curpid(p) == -1){
-        return -1;
+    /*if(get_curpid(p) == -1){
+        change = -1;
     }
     num++;
     */if(new == NULL){
