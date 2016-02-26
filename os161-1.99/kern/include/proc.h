@@ -116,7 +116,6 @@ struct addrspace *curproc_setas(struct addrspace *);
 #if OPT_A2
 int add_proctree(struct proc *p, struct proc *new);
 void remove_proctree(struct proc *p);
-struct proc* get_proctree(pid_t pid);
 void proc_exit(struct proc *p, int exitcode);
 
 int get_state(struct proc *proc);

@@ -74,7 +74,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
   }
 
   lock_acquire(proc_lock);
-    struct proc *child = get_proctree(pid);
+    struct proc *child =  array_get(proctree, pid);
     struct proc *parent = curproc;
 
     // Error if PID waited on does not refer to a valid process

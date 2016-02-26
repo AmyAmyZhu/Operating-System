@@ -80,7 +80,7 @@ int arraysize = 16;
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
-    DEBUG(DB_EXEC, "start add_proctree\n");
+    //DEBUG(DB_EXEC, "start add_proctree\n");
     int change = 0;
     if(num == arraysize-1){
         if(arraysize < 256) {
@@ -102,7 +102,7 @@ int add_proctree(struct proc *p, struct proc *new){
     if(get_curpid(p) == -1){
         change = -1;
     }
-    DEBUG(DB_EXEC, "start add_proctree\n");
+    //DEBUG(DB_EXEC, "start add_proctree\n");
     num++;
     if(new == NULL){
         set_parent_pid(p, -1);
@@ -110,7 +110,7 @@ int add_proctree(struct proc *p, struct proc *new){
         set_parent_pid(p, get_curpid(new));
     }
     set_state(p, 1);
-    DEBUG(DB_EXEC, "finish add_proctree\n");
+    //DEBUG(DB_EXEC, "finish add_proctree\n");
     return change;
 }
 
@@ -157,13 +157,6 @@ void proc_exit(struct proc *p, int exitcode){
     }
     //kprintf("Here!!leave remove proctree!!\n");
 }
-
-struct proc* get_proctree(pid_t pid){
-    DEBUG(DB_EXEC, "start get_proctree\n");
-    return array_get(proctree, pid);
-}
-
-
 
 int get_state(struct proc *proc){
     KASSERT(proc != NULL);
@@ -228,13 +221,13 @@ proc_create(const char *name)
 		return NULL;
 	}
 
-//#if OPT_A2
+#if OPT_A2
     proc->wait = cv_create("newcvproc");
     if(proc->wait == NULL){
         kfree(proc);
         return NULL;
     }
-//#endif // OPT_A2
+#endif // OPT_A2
     
 	threadarray_init(&proc->p_threads);
 	spinlock_init(&proc->p_lock);
@@ -249,7 +242,7 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-//#if OPT_A2
+#if OPT_A2
     set_curpid(proc, -1);
     int err = 0;
     
@@ -267,7 +260,7 @@ proc_create(const char *name)
     if(err){
         return NULL;
     }
-//#endif // OPT_A2
+#endif // OPT_A2
     
 	return proc;
 }
