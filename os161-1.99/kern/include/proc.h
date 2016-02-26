@@ -37,7 +37,7 @@
  *
  * Note: curproc is defined by <current.h>.
  */
-#include <proctable.h>
+//#include <proctable.h>
 #include <limits.h>
 #include <types.h>
 #include <spinlock.h>
