@@ -361,10 +361,10 @@ proc_destroy(struct proc *proc)
     }
     V(proc_count_mutex);
 #endif // UW
-//#in OPT_A2
-   //cv_destroy(proc->wait);
-//#endif // OPT_A2
+    
+    
 }
+
 
 /*
  * Create the process structure for the kernel.
