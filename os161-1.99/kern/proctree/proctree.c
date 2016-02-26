@@ -9,9 +9,6 @@
 int num;
 int limit;
 
-struct array *proctree;
-struct lock *proc_lock;
-
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);

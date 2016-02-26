@@ -159,7 +159,7 @@ proc_create(const char *name)
 
 //#if OPT_A2
     int err = 0;
-    set_curpid(proc, PNOPID);
+    set_curpid(proc, -1);
     
     if(kproc == NULL){
         err = add_proctree(proc, NULL);

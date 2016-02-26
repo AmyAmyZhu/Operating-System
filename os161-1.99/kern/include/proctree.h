@@ -12,6 +12,9 @@
 DECLARRAY(proc);
 DEFARRAY(proc, INLINE);
 
+struct array *proctree;
+struct lock *proc_lock;
+
 int add_proctree(struct proc *p, struct proc *new);
 void remove_proctree(struct proc *p);
 struct proc* get_proctree(pid_t pid);
