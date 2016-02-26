@@ -36,7 +36,6 @@
  * Note: curproc is defined by <current.h>.
  */
 
-#include "opt-A2.h"
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 
@@ -45,25 +44,6 @@ struct vnode;
 #ifdef UW
 struct semaphore;
 #endif // UW
-
-//#if OPT_A2
-#define PEXIT 0;
-#define PPORCESS 1;
-#define PNOPID -1;
-
-
-DECLARRAY(proc);
-DEFARRAY(proc, INLINE);
-
-struct array *proctree;
-struct lock *proc_lock;
-
-void init_proctree(void);
-int add_proctree(struct proc *p, struct proc *new);
-void remove_proctree(struct proc *p);
-struct proc* get_proctree(pid_t pid);
-void proc_exit(struct proc *p, int exitcode);
-//#endif //OPT_A2
 
 /*
  * Process structure.
@@ -89,11 +69,6 @@ struct proc {
 #endif
 
 	/* add more material here as needed */
-    int state;
-    int exitcode;
-    pid_t curpid;
-    pid_t parent_pid;
-    struct cv *wait;
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -125,16 +100,5 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
-//#if OPT_A2
-int get_state(struct proc *proc);
-int get_exitcode(struct proc *proc);
-int get_curpid(struct proc *proc);
-int get_parent_pid(struct proc *proc);
-
-void set_state(struct proc *proc, int state);
-void set_exitcode(struct proc *proc, int exitcode);
-void set_curpid(struct proc *proc, int pid);
-void set_parent_pid(struct proc *proc, int pid);
-//#endif // OPT_A2
 
 #endif /* _PROC_H_ */
