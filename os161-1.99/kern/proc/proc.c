@@ -82,7 +82,7 @@ int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
     
-    if(num == limit-1){
+    /*if(num == limit-1){
         if(limit < 256) {
             limit = limit * 2;
             array_setsize(proctree, limit);
@@ -91,7 +91,7 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
-    /*for(int i = 1; i < limit; i++){
+    for(int i = 1; i < limit; i++){
         if(array_get(proctree, i) == NULL){
             set_curpid(p, i);
             array_set(proctree, i, p);
@@ -102,13 +102,13 @@ int add_proctree(struct proc *p, struct proc *new){
     if(get_curpid(p) == -1){
         return -1;
     }
-    num++;
+    num++;*/
     if(new == NULL){
         set_parent_pid(p, -1);
     } else {
         set_parent_pid(p, get_curpid(new));
     }
-    set_state(p, 1);*/
+    set_state(p, 1);
     return 0;
 }
 
