@@ -82,6 +82,7 @@ int add_proctree(struct proc *p, struct proc *new){
     KASSERT(p != NULL);
     
     int change = 0;
+    int test = 0;
     if(num == limit-1){
         if(limit < 256) {
             limit = limit * 2;
@@ -103,15 +104,15 @@ int add_proctree(struct proc *p, struct proc *new){
         return -1;
     }
     num++;
-    if(new == NULL){
-        change = 2;
+    */if(new == NULL){
+        test = 2;
     }
         /*set_parent_pid(p, -1);
     } else {
         set_parent_pid(p, get_curpid(new));
     }
     set_state(p, 1);*/
-    return 0;
+    return change;
 }
 
 void remove_proctree(struct proc *p){
