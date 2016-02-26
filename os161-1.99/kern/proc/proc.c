@@ -236,7 +236,7 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-//#if OPT_A2
+/*//#if OPT_A2
     int err = 0;
     set_curpid(proc, -1);
     
@@ -254,7 +254,7 @@ proc_create(const char *name)
     if(err){
         return NULL;
     }
-//#endif // OPT_A2
+//#endif // OPT_A2*/
     
 	return proc;
 }
