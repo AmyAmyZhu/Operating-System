@@ -46,7 +46,7 @@ void syscall(struct trapframe *tf);
 
 /* Helper for fork(). You write this. */
 //#if OPT_A2
-void enter_forked_process(void *argc1, unsigned long *argc2);
+void enter_forked_process(void *argc1, unsigned long argc2);
 //#endif
 
 /* Enter user mode. Does not return. */

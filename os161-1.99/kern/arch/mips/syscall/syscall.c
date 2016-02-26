@@ -183,7 +183,7 @@ syscall(struct trapframe *tf)
  */
 //#if OPT_A2
 void
-void enter_forked_process(void *argc1, unsigned long *argc2)
+void enter_forked_process(void *argc1, unsigned long argc2)
 {
     // code you created or modified for ASST2 goes here
     as_activate();
