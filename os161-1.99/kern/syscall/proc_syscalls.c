@@ -94,7 +94,9 @@ sys_waitpid(pid_t pid,
 
 //#if OPT_A2
 int sys_fork(struct trapframe *tf, pid_t *retval){
-    KASSERT(curproc != NULL);
+    void(tf);
+    void(retval);
+    /*KASSERT(curproc != NULL);
     DEBUG(DB_EXEC, "start sys_fork\n");
     struct proc* p = proc_create_runprogram("system_fork");
     if(p == NULL){
@@ -122,7 +124,7 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
         kfree(c_trap);
         return result;
     }
-    DEBUG(DB_EXEC, "finish sys_fork\n");
+    DEBUG(DB_EXEC, "finish sys_fork\n");*/
     return 0;
 }
 
