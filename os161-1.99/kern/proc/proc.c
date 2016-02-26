@@ -309,10 +309,10 @@ proc_destroy(struct proc *proc)
      */
     
     /* VFS fields */
-    //if (proc->p_cwd) {
-      //  VOP_DECREF(proc->p_cwd);
-        //proc->p_cwd = NULL;
-    //}
+    if (proc->p_cwd) {
+        VOP_DECREF(proc->p_cwd);
+        proc->p_cwd = NULL;
+    }
     
     
 #ifndef UW  // in the UW version, space destruction occurs in sys_exit, not here
