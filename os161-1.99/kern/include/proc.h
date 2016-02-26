@@ -46,17 +46,6 @@ struct vnode;
 struct semaphore;
 #endif // UW
 
-#if OPT_A2
-struct array *proctree;
-struct lock *proc_lock;
-
-void init_proctree(void);
-int add_proctree(struct proc *p, struct proc *new);
-void remove_proctree(struct proc *p);
-struct proc* get_proctree(pid_t pid);
-void proc_exit(struct proc *p, int exitcode);
-#endif //OPT_A2
-
 /*
  * Process structure.
  */
@@ -120,6 +109,11 @@ struct addrspace *curproc_getas(void);
 struct addrspace *curproc_setas(struct addrspace *);
 
 #if OPT_A2
+int add_proctree(struct proc *p, struct proc *new);
+void remove_proctree(struct proc *p);
+struct proc* get_proctree(pid_t pid);
+void proc_exit(struct proc *p, int exitcode);
+
 int get_state(struct proc *proc);
 int get_exitcode(struct proc *proc);
 int get_curpid(struct proc *proc);

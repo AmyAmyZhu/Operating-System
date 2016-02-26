@@ -46,7 +46,6 @@
 #include "opt-A2.h"
 #include <types.h>
 #include <proc.h>
-//#include <proctree.h>
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
@@ -73,48 +72,29 @@ static struct semaphore *proc_count_mutex;
 struct semaphore *no_proc_sem;   
 #endif  // UW
 
-//#if OPT_A2
+#if OPT_A2
 
-int num;
-int limit;
+int num = 0;
+int arraysize = 16;
 
-void init_proctree(void){
-    DEBUG(DB_EXEC, "start init_proctree\n");
-    limit = 16;
-    proctree = array_create();
-    if(proctree == NULL){
-        panic("cannot create proctree");
-    }
-    
-    array_setsize(proctree, limit);
-    proc_lock = lock_create("proc_lock");
-    num = 0;
-    
-    if(proc_lock == NULL){
-        panic("cannot create proc_lock");
-    }
-    
-    for(int i = 1; i < limit; i++){
-        array_set(proctree, i, NULL);
-    }
-    DEBUG(DB_EXEC, "finish init_proctree\n");
-}
+struct array *proctree;
+struct lock *proc_lock;
 
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
     DEBUG(DB_EXEC, "start add_proctree\n");
     int change = 0;
-    if(num == limit-1){
-        if(limit < 256) {
-            limit = limit * 2;
-            array_setsize(proctree, limit);
+    if(num == arraysize-1){
+        if(arraysize < 256) {
+            arraysize = arraysize * 2;
+            array_setsize(proctree, arraysize);
         } else {
             change = -1;
         }
     }
     
-    for(int i = 1; i < limit; i++){
+    for(int i = 1; i < arraysize; i++){
         if(array_get(proctree, i) == NULL){
             set_curpid(p, i);
             array_set(proctree, i, p);
@@ -157,7 +137,7 @@ void proc_exit(struct proc *p, int exitcode){
     set_exitcode(p, _MKWAIT_EXIT(exitcode));
     int exit_pid = get_curpid(p);
     
-    for(int i = 1; i < limit; i++) {
+    for(int i = 1; i < arraysize; i++) {
         struct proc *new = array_get(proctree, i);
         if(new != NULL && get_parent_pid(new) == exit_pid){
             int new_state = get_state(new);
@@ -230,7 +210,7 @@ void set_parent_pid(struct proc *proc, int pid){
     proc->parent_pid = pid;
 }
 
-//#endif // OPT_A2
+#endif // OPT_A2
 
 /*
  * Create a proc structure.
@@ -383,8 +363,14 @@ proc_destroy(struct proc *proc)
 void
 proc_bootstrap(void)
 {
-//#if OPT_A2
-//#endif // OPT_A2
+#if OPT_A2
+    proctree = array_create();
+    array_setsize(proctree, arraysize);
+    proc_lock = lock_create("proc_lock");
+    for(int i = 1; i < arraysize; i++){
+        array_set(proctree, i, NULL);
+    }
+#endif // OPT_A2
   kproc = proc_create("[kernel]");
   if (kproc == NULL) {
     panic("proc_create for kproc failed\n");
