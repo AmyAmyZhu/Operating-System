@@ -316,7 +316,7 @@ proc_destroy(struct proc *proc)
     
     
 #ifndef UW  // in the UW version, space destruction occurs in sys_exit, not here
-    //if (proc->p_addrspace) {
+    if (proc->p_addrspace) {
         /*
          * In case p is the currently running process (which
          * it might be in some circumstances, or if this code
@@ -327,12 +327,12 @@ proc_destroy(struct proc *proc)
          * half-destroyed address space. This tends to be
          * messily fatal.
          */
-        //struct addrspace *as;
+        struct addrspace *as;
         
-        //as_deactivate();
-        //as = curproc_setas(NULL);
-      //  as_destroy(as);
-    //}
+        as_deactivate();
+        as = curproc_setas(NULL);
+        as_destroy(as);
+    }
 #endif // UW
     
 #ifdef UW
