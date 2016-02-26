@@ -134,7 +134,7 @@ sys_waitpid(pid_t pid,
 #if OPT_A2
 // code you created or modified for ASST2 goes here
 
-int sys_fork(struct trapframe *tf, pid_t *retval){
+/*int sys_fork(struct trapframe *tf, pid_t *retval){
     KASSERT(curproc != NULL);
     
     struct proc* p = proc_create_runprogram("system_fork");
@@ -166,7 +166,7 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
     
     return 0;
 }
-
+*/
 // old (pre-A2) version of the code goes here,
 //  and is ignored by the compiler when you compile ASST2
 // the ‘‘else’’ part is optional and can be left
