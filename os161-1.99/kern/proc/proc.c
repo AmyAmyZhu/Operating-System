@@ -82,8 +82,9 @@ int add_proctree(struct proc *p, struct proc *new){
     //KASSERT(proc_lock != NULL);
     //KASSERT(p != NULL);
     
+    int change = 0;
     if(p != NULL){
-        return -1;
+        change = 1;
     }
     
     /*if(num == limit-1){
@@ -108,7 +109,7 @@ int add_proctree(struct proc *p, struct proc *new){
     }
     num++;*/
     if(new == NULL){
-        return -1;
+        change = 2;
     }
         /*set_parent_pid(p, -1);
     } else {
