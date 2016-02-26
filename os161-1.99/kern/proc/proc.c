@@ -53,7 +53,6 @@
 #include <vfs.h>
 #include <synch.h>
 #include <kern/fcntl.h>
-#include <kern/erron.h>
 #include <kern/wait.h>
 
 /*
