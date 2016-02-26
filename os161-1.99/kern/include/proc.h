@@ -36,7 +36,7 @@
  * Note: curproc is defined by <current.h>.
  */
 
-#include "opt-A2.h"
+//#include "opt-A2.h"
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 
@@ -46,11 +46,11 @@ struct vnode;
 struct semaphore;
 #endif // UW
 
-#if OPT_A2
+//#if OPT_A2
 #define PEXIT 0;
 #define PPORCESS 1;
 #define PNOPID -1;
-#endif //OPT_A2
+//#endif //OPT_A2
 
 /*
  * Process structure.
@@ -112,7 +112,7 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
-#if OPT_A2
+//#if OPT_A2
 int get_state(struct proc *proc);
 int get_exitcode(struct proc *proc);
 int get_curpid(struct proc *proc);
@@ -122,7 +122,7 @@ void set_state(struct proc *proc, int state);
 void set_exitcode(struct proc *proc, int exitcode);
 void set_curpid(struct proc *proc, int pid);
 void set_parent_pid(struct proc *proc, int pid);
-#endif // OPT_A2
+//#endif // OPT_A2
 
 
 #endif /* _PROC_H_ */

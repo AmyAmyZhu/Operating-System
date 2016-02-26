@@ -1,10 +1,10 @@
-#include "opt-A2.h"
+//#include "opt-A2.h"
 #include <types.h>
 #include <proc.h>
 #include <kern/wait.h>
 #include <proctree.h>
 
-#if OPT_A2
+//#if OPT_A2
 
 int num;
 int limit;
@@ -83,5 +83,5 @@ struct proc* get_proctree(pid_t pid){
     return procarray_get(proctree, pid);
 }
 
-#endif // OPT_A2
+//#endif // OPT_A2
 

@@ -43,10 +43,10 @@
  */
 
 
-#include "opt-A2.h"
-#include <proctree.h>
+//#include "opt-A2.h"
 #include <types.h>
 #include <proc.h>
+#include <proctree.h>
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
@@ -72,7 +72,7 @@ static struct semaphore *proc_count_mutex;
 struct semaphore *no_proc_sem;   
 #endif  // UW
 
-#if OPT_A2
+//#if OPT_A2
 int get_state(struct proc *proc){
     KASSERT(proc != NULL);
     return proc->state;
@@ -115,7 +115,7 @@ void set_parent_pid(struct proc *proc, int pid){
     proc->parent_pid = pid;
 }
 
-#endif // OPT_A2
+//#endif // OPT_A2
 
 /*
  * Create a proc structure.
@@ -136,13 +136,13 @@ proc_create(const char *name)
 		return NULL;
 	}
 
-#if OPT_A2
+//#if OPT_A2
     proc->wait = cv_create("newcvproc");
     if(proc->wait == NULL){
         kfree(proc);
         return NULL;
     }
-#endif // OPT_A2
+//#endif // OPT_A2
     
 	threadarray_init(&proc->p_threads);
 	spinlock_init(&proc->p_lock);
@@ -157,7 +157,7 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-#if OPT_A2
+//#if OPT_A2
     int err = 0;
     set_curpid(proc, PNOPID);
     
@@ -175,7 +175,7 @@ proc_create(const char *name)
     if(err){
         return NULL;
     }
-#endif // OPT_A2
+//#endif // OPT_A2
     
 	return proc;
 }

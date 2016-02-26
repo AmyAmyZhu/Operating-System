@@ -1,4 +1,4 @@
-#include "opt-A2.h"
+//#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -44,11 +44,11 @@ void sys__exit(int exitcode) {
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
 
-#if OPT_A2
+//#if OPT_A2
     lock_acquire(proc_lock);
     exit(p, exitcode);
     lock_release(proc_lock);
-#endif // OPT_A2
+//#endif // OPT_A2
   /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
   proc_destroy(p);
@@ -65,13 +65,11 @@ sys_getpid(pid_t *retval)
 {
   /* for now, this is just a stub that always returns a PID of 1 */
   /* you need to fix this to make it work properly */
-#if OPT_A2
+//#if OPT_A2
     KASSERT(curproc != NULL);
     struct proc *new = curproc;
     *retval = get_curpid(new);
-#else
-    *retval = 1;
-#endif // OPT_A2
+//#endif // OPT_A2
   return(0);
 }
 
@@ -99,7 +97,7 @@ sys_waitpid(pid_t pid,
     return(EINVAL);
   }
     
-#if OPT_A2
+//#if OPT_A2
     lock_acquire(proc_lock);
     struct proc *parent = curproc;
     struct proc *children = get_proctree(pid);
@@ -120,10 +118,7 @@ sys_waitpid(pid_t pid,
     }
     exitstatus = get_exitcode(children);
     lock_release(proc_lock);
-#else
-  /* for now, just pretend the exitstatus is 0 */
-  exitstatus = 0;
-#endif // OPT_A2
+//#endif // OPT_A2
     
   result = copyout((void *)&exitstatus,status,sizeof(int));
   if (result) {
@@ -133,7 +128,7 @@ sys_waitpid(pid_t pid,
   return(0);
 }
 
-#if OPT_A2
+//#if OPT_A2
 // code you created or modified for ASST2 goes here
 
 int sys_fork(struct trapframe *tf, pid_t *retval){
@@ -172,4 +167,4 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 //  and is ignored by the compiler when you compile ASST2
 // the ‘‘else’’ part is optional and can be left
 // out if you are just inserting new code for ASST2
-#endif /* OPT_A2 */
+//#endif /* OPT_A2 */
