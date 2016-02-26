@@ -45,11 +45,11 @@ void sys__exit(int exitcode) {
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
 //#if OPT_A2
-    DEBUG(DB_EXEC, "start sys_exit\n");
+    /*DEBUG(DB_EXEC, "start sys_exit\n");
     lock_acquire(proc_lock);
     proc_exit(p, exitcode);
     lock_release(proc_lock);
-    DEBUG(DB_EXEC, "finish sys_exit\n");
+    DEBUG(DB_EXEC, "finish sys_exit\n");*/
 //#endif // OPT_A2
   /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
@@ -67,8 +67,14 @@ sys_getpid(pid_t *retval)
 {
   /* for now, this is just a stub that always returns a PID of 1 */
   /* you need to fix this to make it work properly */
-  *retval = 1;
-  return(0);
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_getpid\n");
+    KASSERT(curproc != NULL);
+    struct proc *new = curproc;
+    *retval = get_curpid(new);
+    DEBUG(DB_EXEC, "finish sys_getpid\n");
+//#endif // OPT_A2
+    return(0);
 }
 
 /* stub handler for waitpid() system call                */
