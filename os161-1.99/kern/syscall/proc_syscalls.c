@@ -1,4 +1,4 @@
-//#include <proctable.h>
+#include <proctable.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -12,7 +12,7 @@
 #include <copyinout.h>
 #include <mips/trapframe.h>
 
-//#include <pid.h>
+#include <pid.h>
 #include <vm.h>
 #include <vfs.h>
 #include <kern/fcntl.h>

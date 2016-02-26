@@ -33,14 +33,21 @@
 #include <spl.h>
 #include <spinlock.h>
 #include <proc.h>
+
+#include <syscall.h>
+
 #include <current.h>
 #include <mips/tlb.h>
 #include <addrspace.h>
 #include <vm.h>
 
+#include "opt-A3.h"
+
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
- * enough to struggle off the ground.
+ * enough to struggle off the ground. You should replace all of this
+ * code while doing the VM assignment. In fact, starting in that
+ * assignment, this file is not included in your kernel!
  */
 
 /* under dumbvm, always have 48k of user stack */
@@ -121,6 +128,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
 		/* We always create pages read-write, so we can't get this */
+		sys__exit(0);
 		panic("dumbvm: got VM_FAULT_READONLY\n");
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
@@ -168,7 +176,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	stackbase = USERSTACK - DUMBVM_STACKPAGES * PAGE_SIZE;
 	stacktop = USERSTACK;
 
+	bool tmp = false;
+
 	if (faultaddress >= vbase1 && faultaddress < vtop1) {
+		tmp = as->as_load;
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
 	}
 	else if (faultaddress >= vbase2 && faultaddress < vtop2) {
@@ -193,16 +204,39 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			continue;
 		}
 		ehi = faultaddress;
+#if OPT_A3
+	if(tmp) {
+		elo = paddr | TLBLO_VALID;
+	}
+	else {
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+	}
+#else
+		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+#endif
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
 		tlb_write(ehi, elo, i);
 		splx(spl);
 		return 0;
 	}
+#if OPT_A3	
+	ehi = faultaddress;
+	if(tmp) {
+		elo = paddr | TLBLO_VALID;
+	}
+	else {
+		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+	}
+	tlb_random(ehi,elo);
 
+	splx(spl);
+	return 0;
+#endif
+/*
 	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
 	splx(spl);
 	return EFAULT;
+*/
 }
 
 struct addrspace *
@@ -220,6 +254,10 @@ as_create(void)
 	as->as_pbase2 = 0;
 	as->as_npages2 = 0;
 	as->as_stackpbase = 0;
+
+#if OPT_A3
+	as->as_load = false;
+#endif
 
 	return as;
 }
@@ -338,7 +376,11 @@ as_prepare_load(struct addrspace *as)
 int
 as_complete_load(struct addrspace *as)
 {
+#if OPT_A3
+	as->as_load = true;
+#else
 	(void)as;
+#endif
 	return 0;
 }
 
@@ -365,6 +407,10 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 	new->as_npages1 = old->as_npages1;
 	new->as_vbase2 = old->as_vbase2;
 	new->as_npages2 = old->as_npages2;
+
+#if OPTA_3
+	new->as_load = old->as_load;
+#endif
 
 	/* (Mis)use as_prepare_load to allocate some physical memory. */
 	if (as_prepare_load(new)) {
