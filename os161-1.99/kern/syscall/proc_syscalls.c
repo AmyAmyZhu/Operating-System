@@ -18,7 +18,6 @@
 
   /* this implementation of sys__exit does not do anything with the exit code */
   /* this needs to be fixed to get exit() and waitpid() working properly */
-
 void sys__exit(int exitcode) {
 
   struct addrspace *as;
@@ -45,11 +44,11 @@ void sys__exit(int exitcode) {
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
 
-#if OPT_A2
+/*#if OPT_A2
     lock_acquire(proc_lock);
     proc_exit(p, exitcode);
     lock_release(proc_lock);
-#endif // OPT_A2
+#endif // OPT_A2*/
   /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
   proc_destroy(p);
@@ -66,11 +65,13 @@ sys_getpid(pid_t *retval)
 {
   /* for now, this is just a stub that always returns a PID of 1 */
   /* you need to fix this to make it work properly */
-#if OPT_A2
+/*#if OPT_A2
     KASSERT(curproc != NULL);
     struct proc *new = curproc;
     *retval = get_curpid(new);
-#endif // OPT_A2
+#endif // OPT_A2*/
+    *retval = 1;
+
   return(0);
 }
 
@@ -98,7 +99,7 @@ sys_waitpid(pid_t pid,
     return(EINVAL);
   }
     
-#if OPT_A2
+/*#if OPT_A2
     lock_acquire(proc_lock);
     struct proc *parent = curproc;
     struct proc *children = get_proctree(pid);
@@ -119,7 +120,8 @@ sys_waitpid(pid_t pid,
     }
     exitstatus = get_exitcode(children);
     lock_release(proc_lock);
-#endif // OPT_A2
+#endif // OPT_A2*/
+    exitstatus = 0;
     
   result = copyout((void *)&exitstatus,status,sizeof(int));
   if (result) {
