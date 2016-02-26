@@ -344,8 +344,8 @@ proc_destroy(struct proc *proc)
     threadarray_cleanup(&proc->p_threads);
     spinlock_cleanup(&proc->p_lock);
     
-    kfree(proc->p_name);
-    kfree(proc);
+    //kfree(proc->p_name);
+    //kfree(proc);
     
 #ifdef UW
     /* decrement the process count */
