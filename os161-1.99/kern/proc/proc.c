@@ -341,11 +341,11 @@ proc_destroy(struct proc *proc)
     }
 #endif // UW
     
-    //threadarray_cleanup(&proc->p_threads);
-    //spinlock_cleanup(&proc->p_lock);
+    threadarray_cleanup(&proc->p_threads);
+    spinlock_cleanup(&proc->p_lock);
     
-    //kfree(proc->p_name);
-    //kfree(proc);
+    kfree(proc->p_name);
+    kfree(proc);
     
 #ifdef UW
     /* decrement the process count */
@@ -356,10 +356,10 @@ proc_destroy(struct proc *proc)
     KASSERT(proc_count > 0);
     //proc_count--;
     /* signal the kernel menu thread if the process count has reached zero */
-    //if (proc_count == 0) {
-      //  V(no_proc_sem);
-    //}
-    //V(proc_count_mutex);
+    if (proc_count == 0) {
+        V(no_proc_sem);
+    }
+    V(proc_count_mutex);
 #endif // UW
     
     
