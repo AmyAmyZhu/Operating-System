@@ -40,7 +40,6 @@
 #include <clock.h>
 #include <thread.h>
 #include <proc.h>
-#include <proctable.h>
 #include <current.h>
 #include <synch.h>
 #include <vm.h>
