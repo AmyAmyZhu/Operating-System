@@ -82,13 +82,13 @@ void proctable_bootstrap(void);
 int proctable_add_process(struct proc *proc_created, struct proc *proc_parent);
 
 // Switch a process from running to exiting
-void proctable_exit_process(struct proc *proc_exited, int exitCode);
+void proc_exit(struct proc *proc_exited, int exitCode);
 
 // Remove a process from the process table
 void proctable_remove_process(struct proc *proc_removed);
 
 // Return a process from the proctable
-struct proc* proctable_get_process(pid_t pid);
+struct proc* get_proctree(pid_t pid);
 
 #endif /* _PROCTABLE_H_ */
 
@@ -156,13 +156,13 @@ struct addrspace *curproc_getas(void);
 struct addrspace *curproc_setas(struct addrspace *);
 
 // Returns the process' exitcode
-int getExitcode(struct proc *proc);
+int get_exitcode(struct proc *proc);
 
 // Returns the process' PID
-int getPID(struct proc *proc);
+int get_curpid(struct proc *proc);
 
 // Returns the process' PPID
-int getPPID(struct proc *proc);
+int get_parent_pid(struct proc *proc);
 
 // Returns the process' state
 int getState(struct proc *proc);
