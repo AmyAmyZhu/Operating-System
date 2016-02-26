@@ -1,3 +1,4 @@
+#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -6,9 +7,14 @@
 #include <syscall.h>
 #include <current.h>
 #include <proc.h>
+#include <synch.h>
+//#include <proctree.h>
 #include <thread.h>
 #include <addrspace.h>
 #include <copyinout.h>
+#include <mips/trapframe.h>
+#include <vfs.h>
+#include <kern/fcntl.h>
 
   /* this implementation of sys__exit does not do anything with the exit code */
   /* this needs to be fixed to get exit() and waitpid() working properly */
@@ -38,7 +44,13 @@ void sys__exit(int exitcode) {
   /* detach this thread from its process */
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
-
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_exit\n");
+    lock_acquire(proc_lock);
+    proc_exit(p, exitcode);
+    lock_release(proc_lock);
+    DEBUG(DB_EXEC, "finish sys_exit\n");
+//#endif // OPT_A2
   /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
   proc_destroy(p);
@@ -55,8 +67,14 @@ sys_getpid(pid_t *retval)
 {
   /* for now, this is just a stub that always returns a PID of 1 */
   /* you need to fix this to make it work properly */
-  *retval = 1;
-  return(0);
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_getpid\n");
+    KASSERT(curproc != NULL);
+    struct proc *new = curproc;
+    *retval = get_curpid(new);
+    DEBUG(DB_EXEC, "finish sys_getpid\n");
+//#endif // OPT_A2
+    return(0);
 }
 
 /* stub handler for waitpid() system call                */
@@ -83,20 +101,41 @@ sys_waitpid(pid_t pid,
     return(EINVAL);
   }
   /* for now, just pretend the exitstatus is 0 */
-  exitstatus = 0;
-  result = copyout((void *)&exitstatus,status,sizeof(int));
-  if (result) {
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_waitpid\n");
+    lock_acquire(proc_lock);
+    struct proc *parent = curproc;
+    struct proc *children = get_proctree(pid);
+    
+    if(children == NULL){
+        result = ESRCH;
+    } else if(get_parent_pid(children) != get_curpid(parent)){
+        result = ECHILD;
+    }
+    
+    if(result){
+        lock_release(proc_lock);
+        return result;
+    }
+    
+    while(get_state(children) == 1){
+        cv_wait(children->wait, proc_lock);
+    }
+    exitstatus = get_exitcode(children);
+    lock_release(proc_lock);
+    DEBUG(DB_EXEC, "finish sys_waitpid\n");
+//#endif // OPT_A2
+    
+    result = copyout((void *)&exitstatus,status,sizeof(int));
+    if (result) {
     return(result);
   }
   *retval = pid;
   return(0);
 }
 
-//#if OPT_A2
 int sys_fork(struct trapframe *tf, pid_t *retval){
-    (void)tf;
-    (void)retval;
-    /*KASSERT(curproc != NULL);
+    KASSERT(curproc != NULL);
     DEBUG(DB_EXEC, "start sys_fork\n");
     struct proc* p = proc_create_runprogram("system_fork");
     if(p == NULL){
@@ -124,7 +163,6 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
         kfree(c_trap);
         return result;
     }
-    DEBUG(DB_EXEC, "finish sys_fork\n");*/
+    DEBUG(DB_EXEC, "finish sys_fork\n");
     return 0;
 }
-
