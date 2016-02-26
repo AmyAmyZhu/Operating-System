@@ -28,7 +28,6 @@
  */
 
 #include "opt-A2.h"
-//#include <addrspace.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
@@ -37,7 +36,7 @@
 #include <thread.h>
 #include <current.h>
 #include <syscall.h>
-
+#include <addrspace.h>
 
 /*
  * System call dispatcher.
@@ -135,11 +134,10 @@ syscall(struct trapframe *tf)
 
 	    /* Add stuff here */
 #if OPT_A2
-        case SYS_fork:
-            err = sys_fork(tf, (pid_t *)&retval);
-            break;
+    case SYS_fork:
+        err = sys_fork(tf, (pid_t *)&retval);
+        break;
 #endif // OPT_A2
- 
 	default:
 	  kprintf("Unknown syscall %d\n", callno);
 	  err = ENOSYS;
@@ -183,14 +181,14 @@ syscall(struct trapframe *tf)
  *
  * Thus, you can trash it and do things another way if you prefer.
  */
-#if OPT_A2
+//#if OPT_A2
 void enter_forked_process(void *argc1, unsigned long argc2)
 {
     DEBUG(DB_EXEC, "start enter_forked_process\n");
     KASSERT(argc2 == 1);
     // code you created or modified for ASST2 goes here
     as_activate();
-    
+
     struct trapframe stack = *((struct trapframe *)argc1);
     kfree(argc1);
     
@@ -205,11 +203,4 @@ void enter_forked_process(void *argc1, unsigned long argc2)
     mips_usermode(&stack);
     DEBUG(DB_EXEC, "finish enter_forked_process\n");
 }
-#else
-void
-enter_forked_process(struct trapframe *tf)
-{
-    (void)tf;
-}
-#endif /* OPT_A2 */
-
+//#endif /* OPT_A2 */
