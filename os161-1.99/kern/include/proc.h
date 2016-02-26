@@ -36,7 +36,7 @@
  * Note: curproc is defined by <current.h>.
  */
 
-//#include "opt-A2.h"
+#include "opt-A2.h"
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
 

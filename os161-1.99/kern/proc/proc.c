@@ -43,7 +43,7 @@
  */
 
 
-//#include "opt-A2.h"
+#include "opt-A2.h"
 #include <types.h>
 #include <proc.h>
 //#include <proctree.h>

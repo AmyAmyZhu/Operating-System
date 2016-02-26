@@ -27,7 +27,7 @@
  * SUCH DAMAGE.
  */
 
-//#include "opt-A2.h"
+#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
@@ -133,11 +133,11 @@ syscall(struct trapframe *tf)
 #endif // UW
 
 	    /* Add stuff here */
-//#if OPT_A2
+#if OPT_A2
     case SYS_fork:
         err = sys_fork(tf, (pid_t *)&retval);
         break;
-//#endif // OPT_A2
+#endif // OPT_A2
 	default:
 	  kprintf("Unknown syscall %d\n", callno);
 	  err = ENOSYS;
