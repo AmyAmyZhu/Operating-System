@@ -112,9 +112,9 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
-    /*if(get_curpid(p) == -1){
+    if(get_curpid(p) == -1){
         change = -1;
-    }*/
+    }
     num++;
     if(new == NULL){
         set_parent_pid(p, -1);
