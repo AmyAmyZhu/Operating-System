@@ -78,7 +78,7 @@ struct semaphore *no_proc_sem;
 int num;
 int limit;
 
-/*int add_proctree(struct proc *p, struct proc *new){
+int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
     
@@ -112,7 +112,7 @@ int limit;
     return 0;
 }
 
-void remove_proctree(struct proc *p){
+/*void remove_proctree(struct proc *p){
     KASSERT(p != NULL);
     int pid = get_curpid(p);
     array_set(proctree, pid, NULL);
@@ -236,7 +236,7 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-/*//#if OPT_A2
+//#if OPT_A2
     int err = 0;
     set_curpid(proc, -1);
     
@@ -254,7 +254,7 @@ proc_create(const char *name)
     if(err){
         return NULL;
     }
-//#endif // OPT_A2*/
+//#endif // OPT_A2
     
 	return proc;
 }
