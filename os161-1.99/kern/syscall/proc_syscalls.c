@@ -96,8 +96,8 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
     // If child is still running, have parent wait for child to exit
     // Need a while loop, Mesa semantics, because a different child could wake him up,
     // Even though the one we're waiting on here is still running
-    while (getState(child) == PROC_RUNNING) {
-      cv_wait(child->wait_cv, proc_lock);
+    while (get_state(child) == PROC_RUNNING) {
+      cv_wait(child->wait, proc_lock);
     }
 
     // We are now awoken because we waited for the child to exit,
