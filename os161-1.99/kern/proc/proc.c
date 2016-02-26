@@ -50,6 +50,8 @@
 #include <vnode.h>
 #include <vfs.h>
 #include <kern/fcntl.h>  
+#include <kern/wait.h>
+
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
