@@ -92,3 +92,37 @@ sys_waitpid(pid_t pid,
   return(0);
 }
 
+//#if OPT_A2
+int sys_fork(struct trapframe *tf, pid_t *retval){
+    KASSERT(curproc != NULL);
+    DEBUG(DB_EXEC, "start sys_fork\n");
+    struct proc* p = proc_create_runprogram("system_fork");
+    if(p == NULL){
+        return ENOMEM;
+    }
+    struct trapframe *c_trap = kmalloc(sizeof(struct trapframe));
+    if(c_trap == NULL){
+        return ENOMEM;
+    }
+    
+    *retval = get_curpid(p);
+    memcpy(c_trap, tf, sizeof(struct trapframe));
+    
+    struct addrspace *c_addr;
+    int result = as_copy(curproc_getas(), &c_addr);
+    
+    if(result){
+        return result;
+    }
+    
+    p->p_addrspace = c_addr;
+    
+    result = thread_fork("check_fork", p, enter_forked_process, c_trap, 1);
+    if(result){
+        kfree(c_trap);
+        return result;
+    }
+    DEBUG(DB_EXEC, "finish sys_fork\n");
+    return 0;
+}
+
