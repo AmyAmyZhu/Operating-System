@@ -12,6 +12,7 @@
 #include <mips/trapframe.h>
 #include <vfs.h>
 #include <kern/fcntl.h>
+#include <synch.h>
 
 void sys__exit(int exitcode) {
 
