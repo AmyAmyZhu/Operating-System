@@ -119,7 +119,7 @@ sys_waitpid(pid_t pid,
     }
     
     while(getState(children) == 1){
-        cv_wait(children->wait, proc_lock);
+        cv_wait(children->wait_cv, proc_lock);
     }
     exitstatus = get_exitcode(children);
     lock_release(proc_lock);
