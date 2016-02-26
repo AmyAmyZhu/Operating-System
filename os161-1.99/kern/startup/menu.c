@@ -108,8 +108,8 @@ cmd_progthread(void *ptr, unsigned long nargs)
 	strcpy(progname, args[0]);
 #if OPT_A2
 	//kprintf("calling runprogram");
-	//result = runprogram(progname, args, nargs);
-//#else
+	result = runprogram(progname, args, nargs);
+#else
 	result = runprogram(progname);
 #endif // OPT_A2
 	if (result) {
