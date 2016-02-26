@@ -6,7 +6,6 @@
 #include <syscall.h>
 #include <current.h>
 #include <proc.h>
-#include <proctable.h>
 #include <thread.h>
 #include <addrspace.h>
 #include <copyinout.h>
