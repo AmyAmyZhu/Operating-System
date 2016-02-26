@@ -336,9 +336,9 @@ proc_destroy(struct proc *proc)
 #endif // UW
     
 #ifdef UW
-    //if (proc->console) {
-      //  vfs_close(proc->console);
-   // }
+    if (proc->console) {
+        vfs_close(proc->console);
+    }
 #endif // UW
     
     threadarray_cleanup(&proc->p_threads);
@@ -352,14 +352,14 @@ proc_destroy(struct proc *proc)
     /* note: kproc is not included in the process count, but proc_destroy
      is never called on kproc (see KASSERT above), so we're OK to decrement
      the proc_count unconditionally here */
-    P(proc_count_mutex);
-    KASSERT(proc_count > 0);
-    proc_count--;
+    //P(proc_count_mutex);
+    //KASSERT(proc_count > 0);
+    //proc_count--;
     /* signal the kernel menu thread if the process count has reached zero */
-    if (proc_count == 0) {
-        V(no_proc_sem);
-    }
-    V(proc_count_mutex);
+    //if (proc_count == 0) {
+      //  V(no_proc_sem);
+    //}
+    //V(proc_count_mutex);
 #endif // UW
     
     
