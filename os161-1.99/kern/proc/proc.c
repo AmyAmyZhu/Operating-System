@@ -43,7 +43,7 @@
  */
 
 //#include <list.h>
-#include <proctable.h>
+//#include <proctable.h>
 #include <types.h>
 #include <proc.h>
 #include <current.h>
@@ -53,8 +53,10 @@
 #include <synch.h>
 #include <kern/fcntl.h>
 #include <limits.h>
-#include <pid.h>
+//#include <pid.h>
 //#include <list.h>
+#include <kern/errno.h>
+
 
 #include "opt-A2.h"
 
@@ -79,6 +81,8 @@ static struct semaphore *proc_count_mutex;
 struct semaphore *no_proc_sem;
 #endif  // UW
 
+
+
 #if OPT_A2
 
 bool arr[PID_MAX];
@@ -89,6 +93,108 @@ struct spinlock mylock;
 
 struct node* proctable;
 #endif  //OPT_A2
+
+#if OPT_A2
+
+void pid_init(void* arr) {
+    bool* t = (bool *) arr;
+    for(int i = 0; i < PID_MAX; i++) {
+        t[i] = true;
+    }
+    t[0] = false;
+}
+
+int pid_new(void* arr, int* curpid) {
+    bool *t = (bool *) arr;
+    while(!t[*curpid]) {
+        *curpid = *curpid + 1;
+        if(*curpid == PID_MAX - 1) *curpid = 0;
+    }
+    t[*curpid] = false;
+    return *curpid;
+}
+
+void pid_reclaim(void* arr, int pid) {
+    bool* t = (bool* ) arr;
+    t[pid] = true;
+}
+
+#endif //  OPT_A2
+
+#if OPT_A2
+
+int proc_counter = 0;
+
+void proctable_update(struct node* proctable, struct proc* myproc, int exitcode) {
+    //	spinlock_acquire(&mylock);
+    for(int i = 0; i < LEN; i++) {
+        if(proctable[i].pid == myproc->pid) {
+            proctable[i].pid = myproc->pid;
+            proctable[i].exitcode = exitcode;
+            V(proctable[i].mysem);
+            break;
+        }
+    }
+    //	spinlock_release(&mylock);
+    return;
+}
+
+void proctable_insert(struct node* proctable, struct proc* myproc) {
+    /*   for(int i = 0; i < LEN; i++) {
+     if(proctable[i].myproc == NULL) {
+     proctable[i].myproc = myproc;
+     proctable[i].pid = myproc->pid;
+     proctable[i].mysem = sem_create("mysem", 0);
+     return ;
+     }
+     }
+     return;  */
+    if(proc_counter == LEN - 1) proc_counter = 0;
+    if(proctable[proc_counter].myproc == NULL) {
+        proctable[proc_counter].myproc = myproc;
+        proctable[proc_counter].pid = myproc->pid;
+        proctable[proc_counter].mysem = sem_create("mysem", 0);
+    }
+    else {
+        proctable[proc_counter].myproc = myproc;
+        proctable[proc_counter].pid = myproc->pid;
+        sem_destroy(proctable[proc_counter].mysem);
+        proctable[proc_counter].mysem = sem_create("mysem", 0);
+    }
+    proc_counter++;
+    return;
+}
+
+struct semaphore* proctable_get(struct node* proctable, pid_t pid) {
+    for(int i = 0; i < LEN; i++) {
+        if(proctable[i].pid == pid) {
+            return proctable[i].mysem;
+        }
+    }
+    return NULL;
+}
+
+void proctable_delete1(struct node* proctable,pid_t pid, int* exitcode) {
+    for(int i = 0; i < LEN; i++) {
+        if(proctable[i].myproc->pid == pid) {
+            proctable[i].myproc = NULL;
+            *exitcode = proctable[i].exitcode;
+        }
+    }
+}
+
+int getexitcode(struct node* proctable, pid_t pid) {
+    for(int i = 0; i < LEN; i++) {
+        if(proctable[i].pid == pid) {
+            return proctable[i].exitcode;
+        }
+    }
+    kprintf("shouldnt get here getexitcode  \n");
+    return 0;
+}
+#endif  //  OPT_A2
+
+
 
 
 /*
