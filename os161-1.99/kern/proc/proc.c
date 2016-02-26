@@ -341,8 +341,8 @@ proc_destroy(struct proc *proc)
     //}
 #endif // UW
     
-    threadarray_cleanup(&proc->p_threads);
-    spinlock_cleanup(&proc->p_lock);
+    //threadarray_cleanup(&proc->p_threads);
+    //spinlock_cleanup(&proc->p_lock);
     
     kfree(proc->p_name);
     kfree(proc);
