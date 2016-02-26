@@ -44,7 +44,13 @@ void sys__exit(int exitcode) {
   /* detach this thread from its process */
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
-
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_exit\n");
+    lock_acquire(proc_lock);
+    proc_exit(p, exitcode);
+    lock_release(proc_lock);
+    DEBUG(DB_EXEC, "finish sys_exit\n");
+//#endif // OPT_A2
   /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
   proc_destroy(p);
