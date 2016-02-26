@@ -53,6 +53,7 @@
 #include <vfs.h>
 #include <synch.h>
 #include <kern/fcntl.h>
+#include <kern/erron.h>
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -98,16 +99,16 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
-    if(get_curpid(p) == (PNOPID)){
+    if(get_curpid(p) == -1){
         return -1;
     }
     num++;
     if(new == NULL){
-        set_parent_pid(p, (PNOPID));
+        set_parent_pid(p, -1);
     } else {
         set_parent_pid(p, get_curpid(new));
     }
-    set_state(p, (PPORCESS));
+    set_state(p, 1);
     return 0;
 }
 
@@ -122,7 +123,7 @@ void remove_proctree(struct proc *p){
 void proc_exit(struct proc *p, int exitcode){
     KASSERT(p != NULL);
     
-    set_state(p, PEXIT);
+    set_state(p, 0);
     set_exitcode(p, _MKWAIT_EXIT(exitcode));
     int exit_pid = get_curpid(p);
     
@@ -130,9 +131,9 @@ void proc_exit(struct proc *p, int exitcode){
         struct proc *new = array_get(proctree, i);
         if(new != NULL && get_parent_pid(new) == exit_pid){
             int new_state = get_state(new);
-            if(new_state == PPORCESS){
-                set_parent_pid(new, PNOPID);
-            } else if(new_state = PEXIT){
+            if(new_state == 1){
+                set_parent_pid(new, -1);
+            } else if(new_state = 0){
                 remove_proctree(new);
             }
         }
@@ -145,7 +146,7 @@ void proc_exit(struct proc *p, int exitcode){
 }
 
 struct proc* get_proctree(pid_t pid){
-    return procarray_get(proctree, pid);
+    return array_get(proctree, pid);
 }
 
 
