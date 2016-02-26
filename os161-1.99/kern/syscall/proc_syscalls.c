@@ -105,7 +105,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
     // their exit code. We will remove them from proctable when we exit.
     exitstatus = getExitcode(child);
 
-  lock_release(procTableLock);
+  lock_release(proc_lock);
 
   // copy the exitstatus of the process from kernel address space to
   // user space, at the address of the user address `status` that was passed in for that purpose.
