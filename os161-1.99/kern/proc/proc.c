@@ -78,7 +78,7 @@ struct semaphore *no_proc_sem;
 int num;
 int limit;
 
-/*int add_proctree(struct proc *p, struct proc *new){
+int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
     
@@ -110,7 +110,7 @@ int limit;
     }
     set_state(p, 1);
     return 0;
-}*/
+}
 
 void remove_proctree(struct proc *p){
     KASSERT(p != NULL);
