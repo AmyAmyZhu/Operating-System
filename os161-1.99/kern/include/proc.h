@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt-A2.h"
+
 #ifndef _PROC_H_
 #define _PROC_H_
 
@@ -35,28 +37,25 @@
  *
  * Note: curproc is defined by <current.h>.
  */
-#include "opt-A2.h"
+#include <proctable.h>
+#include <limits.h>
+#include <types.h>
 #include <spinlock.h>
+#include <synch.h>
 #include <thread.h> /* required for struct threadarray */
 
 struct addrspace;
-
 struct vnode;
+
+#if OPT_A2
+extern  bool arr[PID_MAX];
+extern int curpid;
+extern struct node* proctable;
+#endif
 
 #ifdef UW
 struct semaphore;
 #endif // UW
-
-
-#if OPT_A2
- 	#ifndef PROCINLINE
-	#define PROCINLINE INLINE
-	#endif
-	
-	DECLARRAY_BYTYPE(procarray, struct proc); 
-	DEFARRAY_BYTYPE(procarray, struct proc, PROCINLINE);
-#endif
-
 
 /*
  * Process structure.
@@ -83,27 +82,18 @@ struct proc {
 
 	/* add more material here as needed */
 #if OPT_A2
-	pid_t p_pid;
-	int p_exitcode;
- 	bool exitable;
- 	struct proc *p_pproc; // parent proc
- 	struct procarray p_children;
- 	struct lock *p_waitpid_lk;
- 	struct cv *p_waitpid_cv;
-#endif
+	pid_t pid;
+   pid_t child_pid;
+	struct proc* parent;
+	struct proc* child;
+#endif  // OPT_A2
 
 };
 
-
 #if OPT_A2
-	void detach_children_proc(struct proc *p);
-	bool if_procchild(struct proc *p, pid_t child_pid);
-	struct proc *proc_get_by_pid(pid_t pid);
-	
-	struct lock;
-	extern struct lock *ptable_lk;
-#endif
-
+extern struct cv* wchan;
+extern struct lock* wait_lock;
+#endif //  OPT_A2
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;

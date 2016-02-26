@@ -35,9 +35,10 @@
 #include <thread.h>
 #include <current.h>
 #include <syscall.h>
-#include <proc.h>
 #include <addrspace.h>
+
 #include "opt-A2.h"
+
 /*
  * System call dispatcher.
  *
@@ -117,7 +118,6 @@ syscall(struct trapframe *tf)
 			  (int *)(&retval));
 	  break;
 	case SYS__exit:
-	  DEBUG(DB_SYSCALL,"syscall: _exit()\n");
 	  sys__exit((int)tf->tf_a0);
 	  /* sys__exit does not return, execution should not get here */
 	  panic("unexpected return from sys__exit");
@@ -132,17 +132,17 @@ syscall(struct trapframe *tf)
 			    (pid_t *)&retval);
 	  break;
 #endif // UW
-
-	    /* Add stuff here */
 #if OPT_A2
+   //This is for fork system call
 	case SYS_fork:
-		err = sys_fork(tf, (pid_t *)&retval);
-		break;
+	  err = sys_fork(tf, &retval);
+	  break;
+	//This is for execv system call
 	case SYS_execv:
-		err = sys_execv((const_userptr_t)tf->tf_a0, (userptr_t)tf->tf_a1);
-		break;
-#endif
-	
+	  err = sys_execv((char* )tf->tf_a0, (char** )tf->tf_a1);
+	  break;
+#endif // OPT_A2
+ 
 	default:
 	  kprintf("Unknown syscall %d\n", callno);
 	  err = ENOSYS;
@@ -186,47 +186,24 @@ syscall(struct trapframe *tf)
  *
  * Thus, you can trash it and do things another way if you prefer.
  */
-#if OPT_A2
-/*
-* Child thread needs to put the trapframe onto the stack and modify it so
-* that it returns the current value (and executes the next instruction)
-*/
 void
-enter_forked_process(void *data1, unsigned long data2)
+enter_forked_process(void *tf, unsigned long arg)
 {
-    (void)data2;
-    struct trapframe *childtf = ((void **)data1)[0];
-    struct addrspace *childas = ((void **)data1)[1];
-    KASSERT(childtf != NULL);
-    KASSERT(childas != NULL);
+#if OPT_A2
+	(void) arg;
+	as_activate();   //activate the address space
+	struct trapframe stacktf;
+	stacktf = *(struct trapframe *) tf;  //copy the trapframe
+	
+	stacktf.tf_v0 = 0;
+	stacktf.tf_a3 = 0;
+	stacktf.tf_epc = stacktf.tf_epc + 4;
 
-	/* It's necessary for the trap frame used here to be on the
-	* current thread's own stack. 
-	*/
-    struct trapframe stacktf = *childtf;
-    // don't need it anymore as long as copy the parent's tf to kernel stack
-    kfree(childtf);
-
-	/* Switch to child as and activate it. */
-	curproc_setas(childas);
-    as_activate();
-
-    stacktf.tf_v0 = 0;     // return value = 0 for child proc
-    stacktf.tf_a3 = 0;     // signal no error 
-    /**
-     * Now, advance the program counter, to avoid restarting the syscall
-     * over and over again, and finally enter usermode.
-     */
-    stacktf.tf_epc += 4;
-    mips_usermode(&stacktf);
-
-    /* mips_usermode() does not return */
-    panic("enter_forked_process: unexpected return from mips_usermode()");
-}
+	kfree(tf);
+	mips_usermode(&stacktf);
+	return;
 #else
-	void
-	enter_forked_process(struct trapframe *tf)
-	{
-		(void)tf;
-	}
+	(void)tf;
+	(void)arg;
 #endif
+}
