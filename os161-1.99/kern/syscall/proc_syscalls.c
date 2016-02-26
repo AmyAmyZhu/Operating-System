@@ -156,12 +156,7 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
     p->p_addrspace = c_addr;
     
     
-    result = thread_fork("Forked thread",
-                         p,
-                         enter_forked_process,
-                         (void *) c_trap,
-                         1
-                         );
+    result = thread_fork("Forked thread", p, enter_forked_process, (void *) c_trap, 0);
     //result = thread_fork("check_fork", p, enter_forked_process, c_trap, 1);
     if(result){
         kfree(c_trap);
