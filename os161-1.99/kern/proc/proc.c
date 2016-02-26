@@ -316,7 +316,7 @@ proc_destroy(struct proc *proc)
     
     
 #ifndef UW  // in the UW version, space destruction occurs in sys_exit, not here
-    //if (proc->p_addrspace) {
+    if (proc->p_addrspace) {
         /*
          * In case p is the currently running process (which
          * it might be in some circumstances, or if this code
@@ -327,18 +327,18 @@ proc_destroy(struct proc *proc)
          * half-destroyed address space. This tends to be
          * messily fatal.
          */
-       // struct addrspace *as;
+        struct addrspace *as;
         
-        //as_deactivate();
-        //as = curproc_setas(NULL);
-        //as_destroy(as);
+        as_deactivate();
+        as = curproc_setas(NULL);
+        as_destroy(as);
     }
 #endif // UW
     
 #ifdef UW
-   // if (proc->console) {
-     //   vfs_close(proc->console);
-   // }
+    if (proc->console) {
+        vfs_close(proc->console);
+    }
 #endif // UW
     
     threadarray_cleanup(&proc->p_threads);
@@ -352,14 +352,14 @@ proc_destroy(struct proc *proc)
     /* note: kproc is not included in the process count, but proc_destroy
      is never called on kproc (see KASSERT above), so we're OK to decrement
      the proc_count unconditionally here */
-    //P(proc_count_mutex);
-    //KASSERT(proc_count > 0);
-    //proc_count--;
+    P(proc_count_mutex);
+    KASSERT(proc_count > 0);
+    proc_count--;
     /* signal the kernel menu thread if the process count has reached zero */
-    //if (proc_count == 0) {
-      //  V(no_proc_sem);
-    //}
-    //V(proc_count_mutex);
+    if (proc_count == 0) {
+        V(no_proc_sem);
+    }
+    V(proc_count_mutex);
 #endif // UW
     
     
