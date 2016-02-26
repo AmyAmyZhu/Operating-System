@@ -128,14 +128,12 @@ int add_proctree(struct proc *p, struct proc *new){
 
 void remove_proctree(struct proc *p){
     KASSERT(p != NULL);
-    DEBUG(DB_EXEC, "start remove_proctree\n");
-    //int pid = get_curpid(p);
-    //array_set(proctree, pid, NULL);
-    //num--;
+    int pid = get_curpid(p);
+    array_set(proctree, pid, NULL);
+    num--;
     //kprintf("Here!!come proc destroy\n");
-    proc_destroy(p);
+    //proc_destroy(p);
     //kprintf("Here!!leave proc destroy\n");
-    DEBUG(DB_EXEC, "finish remove_proctree\n");
 }
 
 void proc_exit(struct proc *p, int exitcode){
