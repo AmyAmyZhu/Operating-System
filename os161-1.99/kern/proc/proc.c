@@ -87,11 +87,11 @@ int add_proctree(struct proc *p, struct proc *new){
             limit = limit * 2;
             array_setsize(proctree, limit);
         } else {
-            return -1;
+            change = -1;
         }
     }
     
-    for(int i = 1; i < limit; i++){
+    /*for(int i = 1; i < limit; i++){
         if(array_get(proctree, i) == NULL){
             set_curpid(p, i);
             array_set(proctree, i, p);
