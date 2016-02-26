@@ -98,16 +98,16 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
-    if(get_curpid(p) == PNOPID){
+    if(get_curpid(p) == (PNOPID)){
         return -1;
     }
     num++;
     if(new == NULL){
-        set_parent_pid(p, PNOPID);
+        set_parent_pid(p, (PNOPID));
     } else {
         set_parent_pid(p, get_curpid(new));
     }
-    set_state(p, PPORCESS);
+    set_state(p, (PPORCESS));
     return 0;
 }
 
