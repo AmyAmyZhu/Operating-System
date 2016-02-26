@@ -236,25 +236,25 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-/*//#if OPT_A2
-    int err = 0;
+//#if OPT_A2
     set_curpid(proc, -1);
+    int err = 0;
     
     if(kproc == NULL){
-        err = add_proctree(proc, NULL);
+        err = 0; //add_proctree(proc, NULL);
     } else {
         lock_acquire(proc_lock);
         if(curproc == kproc){
-            err = add_proctree(proc, NULL);
+            err = 0;// add_proctree(proc, NULL);
         } else {
-            err = add_proctree(proc, curproc);
+            err = 0;//add_proctree(proc, curproc);
         }
         lock_release(proc_lock);
     }
     if(err){
         return NULL;
     }
-//#endif // OPT_A2*/
+//#endif // OPT_A2
     
 	return proc;
 }
