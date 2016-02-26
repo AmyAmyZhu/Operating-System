@@ -78,6 +78,17 @@ struct semaphore *no_proc_sem;
 int num;
 int limit;
 
+void init_proctree(void){
+    num = 0;
+    limit = 16;
+    proctree = array_create();
+    array_setsize(proctree, limit);
+    proc_lock = lock_create("proc_lock");
+    for(int i = 1; i < limit; i++){
+        array_set(proctree, i, NULL);
+    }
+}
+
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(p != NULL);
     
@@ -347,14 +358,6 @@ void
 proc_bootstrap(void)
 {
 //#if OPT_A2
-    num = 0;
-    limit = 16;
-    proctree = array_create();
-    array_setsize(proctree, limit);
-    proc_lock = lock_create("proc_lock");
-    for(int i = 1; i < limit; i++){
-        array_set(proctree, i, NULL);
-    }
 //#endif // OPT_A2
   kproc = proc_create("[kernel]");
   if (kproc == NULL) {
