@@ -42,18 +42,14 @@
  * process that will have more than one thread is the kernel process.
  */
 
-
-#include "opt-A2.h"
 #include <types.h>
 #include <proc.h>
-//#include <proctree.h>
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
 #include <vfs.h>
 #include <synch.h>
-#include <kern/fcntl.h>
-#include <kern/wait.h>
+#include <kern/fcntl.h>  
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -73,128 +69,7 @@ static struct semaphore *proc_count_mutex;
 struct semaphore *no_proc_sem;   
 #endif  // UW
 
-//#if OPT_A2
 
-int num;
-int limit;
-
-int add_proctree(struct proc *p, struct proc *new){
-    KASSERT(proc_lock != NULL);
-    KASSERT(p != NULL);
-    
-    if(num == limit-1){
-        if(limit < 256) {
-            limit = limit * 2;
-            array_setsize(proctree, limit);
-        } else {
-            return -1;
-        }
-    }
-    
-    for(int i = 1; i < limit; i++){
-        if(array_get(proctree, i) == NULL){
-            set_curpid(p, i);
-            array_set(proctree, i, p);
-            break;
-        }
-    }
-    
-    if(get_curpid(p) == -1){
-        return -1;
-    }
-    num++;
-    if(new == NULL){
-        set_parent_pid(p, -1);
-    } else {
-        set_parent_pid(p, get_curpid(new));
-    }
-    set_state(p, 1);
-    return 0;
-}
-
-void remove_proctree(struct proc *p){
-    KASSERT(p != NULL);
-    int pid = get_curpid(p);
-    array_set(proctree, pid, NULL);
-    num--;
-    proc_destroy(p);
-}
-
-void proc_exit(struct proc *p, int exitcode){
-    KASSERT(p != NULL);
-    
-    set_state(p, 0);
-    set_exitcode(p, _MKWAIT_EXIT(exitcode));
-    int exit_pid = get_curpid(p);
-    
-    for(int i = 1; i < limit; i++) {
-        struct proc *new = array_get(proctree, i);
-        if(new != NULL && get_parent_pid(new) == exit_pid){
-            int new_state = get_state(new);
-            if(new_state == 1){
-                set_parent_pid(new, -1);
-            } else if(new_state == 0){
-                remove_proctree(new);
-            }
-        }
-    }
-    
-    if(get_parent_pid(p) == -1){
-        remove_proctree(p);
-    } else {
-        cv_signal(p->wait, proc_lock);
-    }
-}
-
-struct proc* get_proctree(pid_t pid){
-    return array_get(proctree, pid);
-}
-
-
-
-int get_state(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->state;
-}
-
-int get_exitcode(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->exitcode;
-}
-
-int get_curpid(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->curpid;
-}
-
-int get_parent_pid(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->parent_pid;
-}
-
-void set_state(struct proc *proc, int state){
-    KASSERT(proc != NULL);
-    //KASSERT((state == PEXIT) || (state == PPORCESS));
-    proc->state = state;
-}
-
-void set_exitcode(struct proc *proc, int exitcode){
-    KASSERT(proc != NULL);
-    proc->exitcode = exitcode;
-}
-
-void set_curpid(struct proc *proc, int pid){
-    KASSERT(proc != NULL);
-    proc->curpid = pid;
-}
-
-void set_parent_pid(struct proc *proc, int pid){
-    KASSERT(proc != NULL);
-    //KASSERT((pid == PNOPID) || (pid > 0));
-    proc->parent_pid = pid;
-}
-
-//#endif // OPT_A2
 
 /*
  * Create a proc structure.
@@ -215,14 +90,6 @@ proc_create(const char *name)
 		return NULL;
 	}
 
-//#if OPT_A2
-    proc->wait = cv_create("newcvproc");
-    if(proc->wait == NULL){
-        kfree(proc);
-        return NULL;
-    }
-//#endif // OPT_A2
-    
 	threadarray_init(&proc->p_threads);
 	spinlock_init(&proc->p_lock);
 
@@ -236,26 +103,6 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-//#if OPT_A2
-    int err = 0;
-    set_curpid(proc, -1);
-    
-    if(kproc == NULL){
-        err = add_proctree(proc, NULL);
-    } else {
-        lock_acquire(proc_lock);
-        if(curproc == kproc){
-            err = add_proctree(proc, NULL);
-        } else {
-            err = add_proctree(proc, curproc);
-        }
-        lock_release(proc_lock);
-    }
-    if(err){
-        return NULL;
-    }
-//#endif // OPT_A2
-    
 	return proc;
 }
 
@@ -360,7 +207,7 @@ proc_bootstrap(void)
   if (no_proc_sem == NULL) {
     panic("could not create no_proc_sem semaphore\n");
   }
-#endif // UW
+#endif // UW 
 }
 
 /*
@@ -379,7 +226,7 @@ proc_create_runprogram(const char *name)
 	if (proc == NULL) {
 		return NULL;
 	}
-    
+
 #ifdef UW
 	/* open the console - this should always succeed */
 	console_path = kstrdup("con:");

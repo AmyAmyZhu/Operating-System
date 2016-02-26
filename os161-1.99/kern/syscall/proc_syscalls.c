@@ -1,4 +1,3 @@
-#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -7,25 +6,21 @@
 #include <syscall.h>
 #include <current.h>
 #include <proc.h>
-#include <synch.h>
-//#include <proctree.h>
 #include <thread.h>
 #include <addrspace.h>
 #include <copyinout.h>
-#include <mips/trapframe.h>
-#include <vfs.h>
-#include <kern/fcntl.h>
 
   /* this implementation of sys__exit does not do anything with the exit code */
   /* this needs to be fixed to get exit() and waitpid() working properly */
+
 void sys__exit(int exitcode) {
 
   struct addrspace *as;
   struct proc *p = curproc;
   /* for now, just include this to keep the compiler from complaining about
      an unused variable */
-    //(void)exitcode;
-    
+  (void)exitcode;
+
   DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n",exitcode);
 
   KASSERT(curproc->p_addrspace != NULL);
@@ -44,11 +39,6 @@ void sys__exit(int exitcode) {
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
 
-/*#if OPT_A2
-    lock_acquire(proc_lock);
-    proc_exit(p, exitcode);
-    lock_release(proc_lock);
-#endif // OPT_A2*/
   /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
   proc_destroy(p);
@@ -65,13 +55,7 @@ sys_getpid(pid_t *retval)
 {
   /* for now, this is just a stub that always returns a PID of 1 */
   /* you need to fix this to make it work properly */
-/*#if OPT_A2
-    KASSERT(curproc != NULL);
-    struct proc *new = curproc;
-    *retval = get_curpid(new);
-#endif // OPT_A2*/
-    *retval = 1;
-
+  *retval = 1;
   return(0);
 }
 
@@ -98,31 +82,8 @@ sys_waitpid(pid_t pid,
   if (options != 0) {
     return(EINVAL);
   }
-    
-/*#if OPT_A2
-    lock_acquire(proc_lock);
-    struct proc *parent = curproc;
-    struct proc *children = get_proctree(pid);
-    
-    if(children == NULL){
-        result = ESRCH;
-    } else if(get_parent_pid(children) != get_curpid(parent)){
-        result = ECHILD;
-    }
-    
-    if(result){
-        lock_release(proc_lock);
-        return result;
-    }
-    
-    while(get_state(children) == 1){
-        cv_wait(children->wait, proc_lock);
-    }
-    exitstatus = get_exitcode(children);
-    lock_release(proc_lock);
-#endif // OPT_A2*/
-    exitstatus = 0;
-    
+  /* for now, just pretend the exitstatus is 0 */
+  exitstatus = 0;
   result = copyout((void *)&exitstatus,status,sizeof(int));
   if (result) {
     return(result);
@@ -131,44 +92,3 @@ sys_waitpid(pid_t pid,
   return(0);
 }
 
-#if OPT_A2
-// code you created or modified for ASST2 goes here
-
-/*int sys_fork(struct trapframe *tf, pid_t *retval){
-    KASSERT(curproc != NULL);
-    
-    struct proc* p = proc_create_runprogram("system_fork");
-    if(p == NULL){
-        return ENOMEM;
-    }
-    struct trapframe *c_trap = kmalloc(sizeof(struct trapframe));
-    if(c_trap == NULL){
-        return ENOMEM;
-    }
-    
-    *retval = get_curpid(p);
-    memcpy(c_trap, tf, sizeof(struct trapframe));
-    
-    struct addrspace *c_addr;
-    int result = as_copy(curproc_getas(), &c_addr);
-    
-    if(result){
-        return result;
-    }
-    
-    p->p_addrspace = c_addr;
-    
-    result = thread_fork("check_fork", p, enter_forked_process, c_trap, 1);
-    if(result){
-        kfree(c_trap);
-        return result;
-    }
-    
-    return 0;
-}
-*/
-// old (pre-A2) version of the code goes here,
-//  and is ignored by the compiler when you compile ASST2
-// the ‘‘else’’ part is optional and can be left
-// out if you are just inserting new code for ASST2
-#endif /* OPT_A2 */
