@@ -27,8 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#include <opt-A2.h>
-
 #ifndef _LIMITS_H_
 #define _LIMITS_H_
 
@@ -50,9 +48,5 @@
 #define LOGIN_NAME_MAX  __LOGIN_NAME_MAX
 #define OPEN_MAX        __OPEN_MAX
 #define IOV_MAX         __IOV_MAX
-
-#if OPT_A2
-#define LEN             200
-#endif
 
 #endif /* _LIMITS_H_ */

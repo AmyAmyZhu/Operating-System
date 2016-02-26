@@ -68,7 +68,7 @@ spinlock_data_testandset(volatile spinlock_data_t *sd)
 	spinlock_data_t y;
 
 	/*
-    * Test-and-set using LL/SC.
+	 * Test-and-set using LL/SC.
 	 *
 	 * Load the existing value into X, and use Y to store 1.
 	 * After the SC, Y contains 1 if the store succeeded,

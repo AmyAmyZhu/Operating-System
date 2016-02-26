@@ -1,4 +1,3 @@
-#include <proctable.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -11,30 +10,15 @@
 #include <addrspace.h>
 #include <copyinout.h>
 #include <mips/trapframe.h>
-
-#include <pid.h>
-#include <vm.h>
 #include <vfs.h>
 #include <kern/fcntl.h>
-#include <test.h>
-#include <copyinout.h>
-
-#include "opt-A2.h"
-
-  /* this implementation of sys__exit does not do anything with the exit code */
-  /* this needs to be fixed to get exit() and waitpid() working properly */
+#include <synch.h>
 
 void sys__exit(int exitcode) {
+
   struct addrspace *as;
   struct proc *p = curproc;
-  /* for now, just include this to keep the compiler from complaining about
-     an unused variable */
 
-  //(void) exitcode;
-
-#if OPT_A2
-  proctable_update(proctable, curproc,_MKWAIT_EXIT (exitcode));
-#endif
   DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n",exitcode);
 
   KASSERT(curproc->p_addrspace != NULL);
@@ -42,224 +26,153 @@ void sys__exit(int exitcode) {
   /*
    * clear p_addrspace before calling as_destroy. Otherwise if
    * as_destroy sleeps (which is quite possible) when we
-   :* come back we'll be calling as_activate on a
+   * come back we'll be calling as_activate on a
    * half-destroyed address space. This tends to be
    * messily fatal.
    */
   as = curproc_setas(NULL);
   as_destroy(as);
-  
+
   /* detach this thread from its process */
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
 
-  /* if this is the last user process in the system, proc_destroy()
-     will wake up the kernel menu thread */
-  proc_destroy(p);
-  
+  // Ensure synchronization in case another process is trying to getpid()
+  // and inform the proctable that the process is exiting.
+  lock_acquire(proc_lock);
+  proc_exit(p, exitcode);
+  lock_release(proc_lock);
+
   thread_exit();
   /* thread_exit() does not return, so we should never get here */
   panic("return from thread_exit in sys_exit\n");
 }
 
-
-/* stub handler for getpid() system call                */
 int
 sys_getpid(pid_t *retval)
 {
-  /* for now, this is just a stub that always returns a PID of 1 */
-  /* you need to fix this to make it work properly */
-#if OPT_A2
- // lock_acquire(curproc->proc_lock);
   KASSERT(curproc != NULL);
-  *retval = curproc->pid;
- // lock_release(curproc->proc_lock);
-#endif  // OPT_A2
+
+  struct proc *p = curproc;
+
+  // return the current process' PID.
+  *retval = get_curpid(p);
   return(0);
 }
 
-/* stub handler for waitpid() system call                */
-
 int
-sys_waitpid(pid_t pid,
-	    userptr_t status,
-	    int options,
-	    pid_t *retval)
+sys_waitpid(pid_t pid, // pid that you want to wait for
+	    userptr_t status, // status address you want the exitcode returned in
+	    int options, // number of options
+	    pid_t *retval) // return value for waitpid, if success should be pid of process waitee.
 {
-  int exitstatus;
-  int result;
+  int exitstatus = 0;
+  int result = 0;
+
   if (options != 0) {
     return(EINVAL);
   }
-#if OPT_A2
-  	if((int) status % 4 != 0)  {
-  		return EFAULT;
-  	}
-	struct semaphore* target = proctable_get(proctable, pid);
-	if(target == NULL) {
-		return ECHILD;
-	}
-	P(target);
-   exitstatus = getexitcode(proctable, pid);
-   result = copyout((void* )&exitstatus,status,sizeof(int));
-   if(result) {
-		return result;
-	}
-	*retval = pid;
-	return 0;
-   
-#else
-  exitstatus = 0;
-  result = copyout((void* )&exitstatus,status,sizeof(int));
+
+  lock_acquire(proc_lock);
+    struct proc *child = get_proctree(pid);
+    struct proc *parent = curproc;
+
+    // Error if PID waited on does not refer to a valid process
+    if (child == NULL) {
+      result = ESRCH;
+    }
+    // Error if requested PID was not a child of parent process
+    else if (get_parent_pid(child) != get_curpid(parent)) {
+      result = ECHILD;
+    }
+
+    // If any of the above errors were set, return error
+    if (result) {
+      lock_release(proc_lock);
+      return(result);
+    }
+    
+    // Otherwise, if waitpid call was valid, check to see if child has exited.
+    // If child is still running, have parent wait for child to exit
+    // Need a while loop, Mesa semantics, because a different child could wake him up,
+    // Even though the one we're waiting on here is still running
+    while (getState(child) == PROC_RUNNING) {
+      cv_wait(child->wait_cv, proc_lock);
+    }
+
+    // We are now awoken because we waited for the child to exit,
+    // or the child had already exited. Either way, we can now collect
+    // their exit code. We will remove them from proctable when we exit.
+    exitstatus = get_exitcode(child);
+
+  lock_release(proc_lock);
+
+  // copy the exitstatus of the process from kernel address space to
+  // user space, at the address of the user address `status` that was passed in for that purpose.
+  result = copyout((void *)&exitstatus,status,sizeof(int));
+
   if (result) {
     return(result);
   }
+
+  // the return value of waitpid is always the PID of the process
+  // whose exit status goes in `status`, in OS161
   *retval = pid;
   return(0);
-#endif
 }
 
-#if OPT_A2
-int sys_fork(struct trapframe* tf, pid_t* retval) {
-	int errcheck;    //this is to check if there's error in some funcitons
-	//first creating a new proc
-	struct proc* child = proc_create_runprogram("child123");
-   //proctable_insert(child);
-	if(child == NULL) {
-		return ENOMEM;
-	}
-	curproc->child_pid = child->pid;
-	curproc->child = child;      ///////////////
-	child->parent = curproc;     //////////////
-	
-	//now, copying the address space
-	struct addrspace* newas;
-	errcheck = as_copy(curproc_getas(), &newas);
-	if(errcheck != 0) {    //there's an error
-		return errcheck;
-	}
-	child->p_addrspace = newas;
-	
-	//now copying the trapframe to the child
-	struct trapframe* newtf = kmalloc(sizeof(struct trapframe));
-	if(newtf == NULL) {
-		return ENOMEM;
-	}
-	*newtf = *tf;
-	//now, do the thread_fork
-	errcheck = thread_fork("child2", child, enter_forked_process, newtf, 0);
-	if(errcheck != 0) {
-		return errcheck;
-	}
-	*retval = child->pid;
-	return(0);
+int sys_fork(struct trapframe* tf, pid_t *retval) {
+  struct proc* proc_created = proc_create_runprogram("Forked process");
+  struct addrspace* as;
+  int result;
+
+  // could not create child due to memory constraints
+  if (proc_created == NULL) {
+    return ENOMEM;
+  }
+
+  // the parent needs to return the retval of the child
+  // synchronization is not required since the only one interested
+  // in the child process is the parent and we are the parent
+  *retval = get_curpid(proc_created);
+
+  // allocate duplicate trapframe on kernel heap for child process
+  struct trapframe* dupTrap = kmalloc(sizeof(struct trapframe));
+
+  if (dupTrap == NULL) {
+    return ENOMEM;
+  }
+
+  memcpy(dupTrap, tf, sizeof(struct trapframe));
+  
+  // copy the address space of the parent process
+  result = as_copy(curproc_getas(), &as);
+  if (result) {
+    return result;
+  }
+  
+  // if successful, now set the new proc's address space
+  // to be the copied parent's. We don't need any synchronization to do this
+  // because only the parent knows about this child and it is not yet running
+  proc_created->p_addrspace = as;
+
+  // we are now ready to create the child process using thread_fork
+  DEBUG(DB_EXEC, "Starting Forked program\n");
+
+  result = thread_fork("Forked thread", // name of thread
+                        proc_created, // process to attach thread to
+                        enter_forked_process, // entrypoint function
+                        (void *)dupTrap, // pass trapframe as data
+                        1 // pass in as number of args
+                      );
+
+  if (result) {
+    kfree(dupTrap);
+    return result;
+  }
+
+  // If there has been no error in thread_fork, then the child process is now running
+  // and could run before this code is executed
+
+  return 0;
 }
-#endif //OPT_A2
-
-//The following is the implementation of sys_execv
-
-#if OPT_A2
-int sys_execv(char* program, char** args) {
-	int result;
-
-	char name[strlen(program) + 1];
-	result = copyin((userptr_t) program,
-				name, (strlen(program) + 1) * sizeof(char));
-	//kprintf("%s", name);
-
-	int len_arg = 0;
-	while(args[len_arg] != NULL) {
-		len_arg++;
-	}
-
-	int length_every_arg[len_arg];
-	for(int i = 0; i < len_arg; i++) {
-		length_every_arg[i] = strlen(args[i]);
-	}
-
-	char* kern_args[len_arg];
-	for(int i = 0; i < len_arg; i++) {
-		kern_args[i] = kmalloc(sizeof(char) * length_every_arg[i] + 1);
-		copyin((const_userptr_t)args[i], kern_args[i],
-              (length_every_arg[i] + 1) * sizeof(char));
-	}
-/*
-	for(int i = 0; i < len_arg; i++) {
-		kprintf("{ _%d__%p__%p_",strlen(kern_args[i]), kern_args[i],args[i]);
-		kprintf("%s", kern_args[i]);
-		kprintf("}\n");
-	}
-*/
-/////////////////////////////////////////////////////
-// this is "copied" from runprogram
-  	struct addrspace* old_as;
-	struct vnode* v;
-	vaddr_t entrypoint, stackptr;
-
-	result = vfs_open(program, O_RDONLY, 0, &v);
-	if(result) {
-		return result;
-	}
-
-	as_deactivate();
-	old_as = curproc_setas(NULL);
-	as_destroy(old_as);
-
-	struct addrspace* new_as = as_create();
-	if(new_as == NULL) {
-		vfs_close(v);
-		return ENOMEM;
-	}
-	curproc_setas(new_as);
-	as_activate();
-
-	result = load_elf(v, &entrypoint);
-	if(result) {
-		vfs_close(v);
-		return result;
-	}
-
-	vfs_close(v);
-	
-	result = as_define_stack(new_as, &stackptr);
-	if(result) {
-		return result;
-	}
-//////////////////////////////////////////////////////////
-// kern_args
-// the addr of stackptr is 0x8000 0000
-	vaddr_t argv = stackptr;
-	for(int i = 0; i < len_arg + 1; i++) {
-		argv = argv - 4;
-	}
-   
-	vaddr_t start = argv;
-	vaddr_t temp = argv;
-
-	copyout(NULL, (userptr_t)(stackptr - 4), 4);
-	//starts from 1, because argv[0] is reserved for the program name
-	for(int i = 0; i < len_arg; i++) {
-		//question? why do I have to add 2
-		int m = sizeof(char) * (strlen(kern_args[i]) + 1);
-	//	kprintf("the value of m -> %d\n", m);
-		argv = argv - m;
-		copyout(kern_args[i], (userptr_t)argv, m);
-	//	kprintf("***(%d)%s(%p)\n***", m, (char* )argv, (void *) argv);
-		copyout(&argv, (userptr_t)temp, sizeof(char* ));
-		temp = temp + 4;
-	}
-	
-	for(int i = 0; i < len_arg; i++) {
-		kfree(kern_args[i]);
-	}
-	
-	while(argv % 8 != 0) {argv--;}
-	 
-	enter_new_process(len_arg, (userptr_t)start, (vaddr_t) argv, entrypoint);
-
-//	enter_new_process(0, NULL, stackptr, entrypoint);
-	panic("enter_new_process returned");
-	return EINVAL;
-}
-        
-#endif

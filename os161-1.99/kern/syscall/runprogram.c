@@ -44,8 +44,6 @@
 #include <vfs.h>
 #include <syscall.h>
 #include <test.h>
-#include <copyinout.h>
-#include "opt-A2.h"
 
 /*
  * Load program "progname" and start running it in usermode.
@@ -54,27 +52,12 @@
  * Calls vfs_open on progname and thus may destroy it.
  */
 int
-#if OPT_A2
-runprogram(char* progname, char** args, int nargs)
-#else
 runprogram(char *progname)
-#endif
 {
 	struct addrspace *as;
 	struct vnode *v;
 	vaddr_t entrypoint, stackptr;
 	int result;
-#if OPT_A2
-	int len_arg = nargs;
-	
-	char* kern_args[len_arg];
-	for(int i = 0; i < len_arg; i++) {
-		kern_args[i] = kmalloc(sizeof(char) * (strlen(args[i]) + 1));
-		//copyin((userptr_t)args[i], kern_args[i],
-		//		(strlen(args[i]) + 1) * sizeof(char));
-		strcpy(kern_args[i], args[i]);
-	}
-#endif
 
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
@@ -113,30 +96,11 @@ runprogram(char *progname)
 		/* p_addrspace will go away when curproc is destroyed */
 		return result;
 	}
-#if OPT_A2
-	vaddr_t argv = stackptr;
-	for(int i = 0; i < len_arg + 1; i++) {
-		argv = argv - 4;
-	}
-	
-	vaddr_t start = argv;
-	vaddr_t temp = argv;
-	
-	copyout(NULL, (userptr_t)(stackptr - 4), sizeof(char *));
-	for(int i = 0; i < len_arg; i++) {
-		int m = sizeof(char) * (strlen(kern_args[i]) + 1);
-		argv = argv - m;
-		copyout(kern_args[i], (userptr_t) argv, m);
-		copyout(&argv, (userptr_t) temp, sizeof(char *));
-		temp = temp + 4;
-	}
-  while(argv % 8 != 0) {argv--;}	
-  enter_new_process(len_arg, (userptr_t) start,(vaddr_t) argv, entrypoint);
-#else
+
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
 			  stackptr, entrypoint);
-#endif	
+	
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
 	return EINVAL;

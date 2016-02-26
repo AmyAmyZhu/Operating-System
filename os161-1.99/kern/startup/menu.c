@@ -46,8 +46,6 @@
 #include "opt-sfs.h"
 #include "opt-net.h"
 
-#include "opt-A2.h"
-
 /*
  * In-kernel menu and command dispatcher.
  */
@@ -94,24 +92,17 @@ cmd_progthread(void *ptr, unsigned long nargs)
 	int result;
 
 	KASSERT(nargs >= 1);
-  
-#if OPT_A2
-#else
+
 	if (nargs > 2) {
 		kprintf("Warning: argument passing from menu not supported\n");
 	}
-#endif
 
 	/* Hope we fit. */
 	KASSERT(strlen(args[0]) < sizeof(progname));
 
 	strcpy(progname, args[0]);
-#if OPT_A2
-	//kprintf("calling runprogram");
-	result = runprogram(progname, args, nargs);
-#else
+
 	result = runprogram(progname);
-#endif // OPT_A2
 	if (result) {
 		kprintf("Running program %s failed: %s\n", args[0],
 			strerror(result));
@@ -297,19 +288,6 @@ cmd_quit(int nargs, char **args)
 	thread_exit();
 	return 0;
 }
-/*
- * Command for debug thread
- */
-static
-int
-cmd_dth(int nargs, char **args)
-{
-	(void)nargs;
-   (void)args;
-
-   dbflags = 0x0010;
-   return 0;
-}
 
 /*
  * Command for mounting a filesystem.
@@ -459,7 +437,6 @@ static const char *opsmenu[] = {
 	"[sync]    Sync filesystems          ",
 	"[panic]   Intentional panic         ",
 	"[q]       Quit and shut down        ",
-   "[dth]     Turn on Debug for thread  ",    // This is for Assignment 0
 	NULL
 };
 
@@ -524,6 +501,7 @@ static const char *mainmenu[] = {
 	"[sp1] Whale Mating                  ",
 #ifdef UW
 	"[sp2] Cat/mouse                     ",
+	"[sp3] Traffic                       ",
 #endif /* UW */
 #endif
 	"[kh] Kernel heap stats              ",
@@ -542,6 +520,20 @@ cmd_mainmenu(int n, char **a)
 	return 0;
 }
 
+//A0 ADDED!!!!!!///
+static
+int
+cmd_dth(int n, char **a)
+{
+    (void)n;
+    (void)a;
+    
+    dbflags = DB_THREADS;
+    
+    return 0;
+}
+
+
 ////////////////////////////////////////
 //
 // Command table.
@@ -556,6 +548,7 @@ static struct {
 	{ "help",	cmd_mainmenu },
 	{ "?o",		cmd_opsmenu },
 	{ "?t",		cmd_testmenu },
+    { "dth",    cmd_dth      },
 
 	/* operations */
 	{ "s",		cmd_shell },
@@ -571,13 +564,13 @@ static struct {
 	{ "q",		cmd_quit },
 	{ "exit",	cmd_quit },
 	{ "halt",	cmd_quit },
-   { "dth",    cmd_dth  },  //This is for Assignment 0
 
 #if OPT_SYNCHPROBS
 	/* in-kernel synchronization problem(s) */
 	{ "sp1",	whalemating },
 #ifdef UW
 	{ "sp2",	catmouse },
+	{ "sp3",	traffic_simulation },
 #endif /* UW */
 #endif
 

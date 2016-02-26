@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
@@ -36,8 +37,6 @@
 #include <current.h>
 #include <syscall.h>
 #include <addrspace.h>
-
-#include "opt-A2.h"
 
 /*
  * System call dispatcher.
@@ -132,17 +131,13 @@ syscall(struct trapframe *tf)
 			    (pid_t *)&retval);
 	  break;
 #endif // UW
+
+	    /* Add stuff here */
 #if OPT_A2
-   //This is for fork system call
-	case SYS_fork:
-	  err = sys_fork(tf, &retval);
-	  break;
-	//This is for execv system call
-	case SYS_execv:
-	  err = sys_execv((char* )tf->tf_a0, (char** )tf->tf_a1);
-	  break;
+    case SYS_fork:
+        err = sys_fork(tf, (pid_t *)&retval);
+        break;
 #endif // OPT_A2
- 
 	default:
 	  kprintf("Unknown syscall %d\n", callno);
 	  err = ENOSYS;
@@ -186,24 +181,26 @@ syscall(struct trapframe *tf)
  *
  * Thus, you can trash it and do things another way if you prefer.
  */
-void
-enter_forked_process(void *tf, unsigned long arg)
+//#if OPT_A2
+void enter_forked_process(void *argc1, unsigned long argc2)
 {
-#if OPT_A2
-	(void) arg;
-	as_activate();   //activate the address space
-	struct trapframe stacktf;
-	stacktf = *(struct trapframe *) tf;  //copy the trapframe
-	
-	stacktf.tf_v0 = 0;
-	stacktf.tf_a3 = 0;
-	stacktf.tf_epc = stacktf.tf_epc + 4;
+    DEBUG(DB_EXEC, "start enter_forked_process\n");
+    KASSERT(argc2 == 1);
+    // code you created or modified for ASST2 goes here
+    as_activate();
 
-	kfree(tf);
-	mips_usermode(&stacktf);
-	return;
-#else
-	(void)tf;
-	(void)arg;
-#endif
+    struct trapframe stack = *((struct trapframe *)argc1);
+    kfree(argc1);
+    
+    stack.tf_a3 = 0;
+    stack.tf_v0 = 0; // no children
+    /*
+     * Now, advance the program counter, to avoid restarting
+     * the syscall over and over again.
+     */
+    stack.tf_epc += 4;
+    
+    mips_usermode(&stack);
+    DEBUG(DB_EXEC, "finish enter_forked_process\n");
 }
+//#endif /* OPT_A2 */

@@ -77,11 +77,9 @@ struct spinlock {
  */
 
 void spinlock_init(struct spinlock *lk);
-
 void spinlock_cleanup(struct spinlock *lk);
 
 void spinlock_acquire(struct spinlock *lk);
-
 void spinlock_release(struct spinlock *lk);
 
 bool spinlock_do_i_hold(struct spinlock *lk);

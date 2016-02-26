@@ -19,14 +19,8 @@
 /*
  * replace this with declarations of any synchronization and other variables you need here
  */
-//static struct semaphore *globalCatMouseSem;
-static bool *ava_bowl = NULL;
-static volatile int num_cat_eating;
-static volatile int num_mouse_eating;
-static struct lock *myLock;
-//static struct cv *wchan_cat;
-//static struct cv *wchan_mouse;
-static struct cv *wchan_all;
+static struct semaphore *globalCatMouseSem;
+
 
 /* 
  * The CatMouse simulation will call this function once before any cat or
@@ -40,28 +34,12 @@ void
 catmouse_sync_init(int bowls)
 {
   /* replace this default implementation with your own implementation of catmouse_sync_init */
-  /* This is the default implementation
-  (void)bowls; // keep the compiler from complaining about unused parameters
+
+  (void)bowls; /* keep the compiler from complaining about unused parameters */
   globalCatMouseSem = sem_create("globalCatMouseSem",1);
   if (globalCatMouseSem == NULL) {
     panic("could not create global CatMouse synchronization semaphore");
   }
-  return;
-  */
-  myLock = lock_create("myLock");
-  KASSERT(myLock != NULL);
-  lock_acquire(myLock);
-  ava_bowl = kmalloc(bowls * sizeof(bool));
-  KASSERT(ava_bowl != NULL);
-  for(int i = 0; i < bowls; i++) {
-     ava_bowl[i] = true;
-  }
-  num_cat_eating = 0;
-  num_mouse_eating = 0;
-//  wchan_cat = cv_create("cat");
-//  wchan_mouse = cv_create("mouse");
-  wchan_all = cv_create("all");
-  lock_release(myLock);
   return;
 }
 
@@ -77,16 +55,9 @@ void
 catmouse_sync_cleanup(int bowls)
 {
   /* replace this default implementation with your own implementation of catmouse_sync_cleanup */
-  /* (void)bowls; // keep the compiler from complaining about unused parameters
+  (void)bowls; /* keep the compiler from complaining about unused parameters */
   KASSERT(globalCatMouseSem != NULL);
-  sem_destroy(globalCatMouseSem); */
-
-  lock_destroy(myLock);
-  (void)bowls;
-  kfree(ava_bowl);
-//  cv_destroy(wchan_cat);
-//  cv_destroy(wchan_mouse);
-  cv_destroy(wchan_all);
+  sem_destroy(globalCatMouseSem);
 }
 
 
@@ -105,25 +76,10 @@ catmouse_sync_cleanup(int bowls)
 void
 cat_before_eating(unsigned int bowl) 
 {
-  /* replace this default implementation with your own implementation of cat_before_eating 
-  (void)bowl;  // keep the compiler from complaining about an unused parameter
+  /* replace this default implementation with your own implementation of cat_before_eating */
+  (void)bowl;  /* keep the compiler from complaining about an unused parameter */
   KASSERT(globalCatMouseSem != NULL);
   P(globalCatMouseSem);
-  */
-  lock_acquire(myLock);
-  while((num_mouse_eating > 0) || (ava_bowl[bowl - 1] == false)) {
-    // cv_wait(wchan_cat, myLock);
-     cv_wait(wchan_all, myLock);
-  }
-  //lock_release(myLock);
-
-  //lock_acquire(myLock);
-  num_cat_eating++;
-  //lock_release(myLock);
-
-  //lock_acquire(myLock);
-  ava_bowl[bowl - 1] = false;
-  lock_release(myLock);
 }
 
 /*
@@ -142,30 +98,10 @@ cat_before_eating(unsigned int bowl)
 void
 cat_after_eating(unsigned int bowl) 
 {
-  /* replace this default implementation with your own implementation of cat_after_eating
-  (void)bowl;  // keep the compiler from complaining about an unused parameter
+  /* replace this default implementation with your own implementation of cat_after_eating */
+  (void)bowl;  /* keep the compiler from complaining about an unused parameter */
   KASSERT(globalCatMouseSem != NULL);
   V(globalCatMouseSem);
-  */
-  lock_acquire(myLock);
-  num_cat_eating--;
-  //lock_release(myLock);
-
-  //lock_acquire(myLock);
-  ava_bowl[bowl - 1] = true;
-  //lock_acquire(myLock);
-
-  //lock_acquire(myLock);
-  /*
-  if(num_cat_eating == 0) {
-    cv_broadcast(wchan_mouse,myLock);
-  }
-  else {
-  	cv_broadcast(wchan_cat, myLock);
-  }
-  */
-  cv_broadcast(wchan_all, myLock);
-  lock_release(myLock);
 }
 
 /*
@@ -183,25 +119,10 @@ cat_after_eating(unsigned int bowl)
 void
 mouse_before_eating(unsigned int bowl) 
 {
-  /* replace this default implementation with your own implementation of mouse_before_eating
-  (void)bowl;  // keep the compiler from complaining about an unused parameter
+  /* replace this default implementation with your own implementation of mouse_before_eating */
+  (void)bowl;  /* keep the compiler from complaining about an unused parameter */
   KASSERT(globalCatMouseSem != NULL);
   P(globalCatMouseSem);
-  */
-  lock_acquire(myLock);
-  while((num_cat_eating > 0) || (ava_bowl[bowl - 1] == false)) {
-     //cv_wait(wchan_mouse, myLock);
-     cv_wait(wchan_all, myLock);
-  }
-  //lock_release(myLock);
-
-  //lock_acquire(myLock);
-  num_mouse_eating++;
-  //lock_release(myLock);
-
-  //lock_acquire(myLock);
-  ava_bowl[bowl - 1] = false;
-  lock_release(myLock);
 }
 
 /*
@@ -220,28 +141,8 @@ mouse_before_eating(unsigned int bowl)
 void
 mouse_after_eating(unsigned int bowl) 
 {
-  /* replace this default implementation with your own implementation of mouse_after_eating
-  (void)bowl;  // keep the compiler from complaining about an unused parameter
+  /* replace this default implementation with your own implementation of mouse_after_eating */
+  (void)bowl;  /* keep the compiler from complaining about an unused parameter */
   KASSERT(globalCatMouseSem != NULL);
   V(globalCatMouseSem);
-  */
-  lock_acquire(myLock);
-  num_mouse_eating--;
-  //lock_release(myLock);
-
-  //lock_acquire(myLock);
-  ava_bowl[bowl - 1] = true;
-  //lock_release(myLock);
-
-  //lock_acquire(myLock);
-  /*
-  if(num_cat_eating == 0) {
-     cv_broadcast(wchan_cat, myLock);
-  }
-  else {
-     cv_broadcast(wchan_cat, myLock);
-  }
-  */
-  cv_broadcast(wchan_all, myLock);
-  lock_release(myLock);
 }

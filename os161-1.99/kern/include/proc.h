@@ -27,8 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#include "opt-A2.h"
-
 #ifndef _PROC_H_
 #define _PROC_H_
 
@@ -37,25 +35,35 @@
  *
  * Note: curproc is defined by <current.h>.
  */
-#include <proctable.h>
-#include <limits.h>
-#include <types.h>
+
+#include "opt-A2.h"
 #include <spinlock.h>
-#include <synch.h>
 #include <thread.h> /* required for struct threadarray */
 
 struct addrspace;
 struct vnode;
-
-#if OPT_A2
-extern  bool arr[PID_MAX];
-extern int curpid;
-extern struct node* proctable;
-#endif
-
 #ifdef UW
 struct semaphore;
 #endif // UW
+
+//#if OPT_A2
+#define PEXIT 0;
+#define PPORCESS 1;
+#define PNOPID -1;
+
+
+DECLARRAY(proc);
+DEFARRAY(proc, INLINE);
+
+struct array *proctree;
+struct lock *proc_lock;
+
+void init_proctree(void);
+int add_proctree(struct proc *p, struct proc *new);
+void remove_proctree(struct proc *p);
+struct proc* get_proctree(pid_t pid);
+void proc_exit(struct proc *p, int exitcode);
+//#endif //OPT_A2
 
 /*
  * Process structure.
@@ -81,19 +89,12 @@ struct proc {
 #endif
 
 	/* add more material here as needed */
-#if OPT_A2
-	pid_t pid;
-   pid_t child_pid;
-	struct proc* parent;
-	struct proc* child;
-#endif  // OPT_A2
-
+    int state;
+    int exitcode;
+    pid_t curpid;
+    pid_t parent_pid;
+    struct cv *wait;
 };
-
-#if OPT_A2
-extern struct cv* wchan;
-extern struct lock* wait_lock;
-#endif //  OPT_A2
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
@@ -124,5 +125,16 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
+//#if OPT_A2
+int get_state(struct proc *proc);
+int get_exitcode(struct proc *proc);
+int get_curpid(struct proc *proc);
+int get_parent_pid(struct proc *proc);
+
+void set_state(struct proc *proc, int state);
+void set_exitcode(struct proc *proc, int exitcode);
+void set_curpid(struct proc *proc, int pid);
+void set_parent_pid(struct proc *proc, int pid);
+//#endif // OPT_A2
 
 #endif /* _PROC_H_ */

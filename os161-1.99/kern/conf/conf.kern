@@ -321,15 +321,8 @@ file      ../common/libc/string/strtok_r.c
 
 file      thread/clock.c
 # UW Mod
-#file      thread/proc.c
+# file      thread/proc.c
 file      proc/proc.c
-file      proc/pid.c   #### THIS IS NEW!!!!
-file      proc/proctable.c   #### THIS IS NEW!!!
-#file      proc/list.c  #### THIS IS NEW!!!!
-#file      proc/proc.c
-
-#if OPT_A2
-
 file      thread/spl.c
 file      thread/spinlock.c
 file      thread/synch.c
@@ -343,7 +336,6 @@ file      thread/threadlist.c
 
 file      vm/kmalloc.c
 file      vm/uw-vmstats.c
-file      vm/coremap.c
 # UW Mod - no longer used
 #defoption vm
 #optfile   vm   vm/vm.c
@@ -431,6 +423,8 @@ optfile   synchprobs  synchprobs/whalemating.c
 # UW Mod
 optfile   synchprobs  synchprobs/catmouse.c
 optfile   synchprobs  synchprobs/catmouse_synch.c
+optfile   synchprobs  synchprobs/traffic.c
+optfile   synchprobs  synchprobs/traffic_synch.c
 
 
 ########################################
