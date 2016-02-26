@@ -80,11 +80,20 @@ int limit;
 
 void init_proctree(void){
     DEBUG(DB_EXEC, "start init_proctree\n");
-    num = 0;
     limit = 16;
     proctree = array_create();
+    if(proctree == NULL){
+        panic("cannot create proctree");
+    }
+    
     array_setsize(proctree, limit);
     proc_lock = lock_create("proc_lock");
+    num = 0;
+    
+    if(proc_lock == NULL){
+        panic("cannot create proc_lock");
+    }
+    
     for(int i = 1; i < limit; i++){
         array_set(proctree, i, NULL);
     }
@@ -92,6 +101,7 @@ void init_proctree(void){
 }
 
 int add_proctree(struct proc *p, struct proc *new){
+    KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
     DEBUG(DB_EXEC, "start add_proctree\n");
     int change = 0;

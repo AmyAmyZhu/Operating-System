@@ -65,8 +65,6 @@ struct proc* get_proctree(pid_t pid);
 void proc_exit(struct proc *p, int exitcode);
 //#endif //OPT_A2
 
-
-
 /*
  * Process structure.
  */
