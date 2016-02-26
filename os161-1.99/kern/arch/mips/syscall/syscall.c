@@ -185,6 +185,7 @@ syscall(struct trapframe *tf)
 void
 void enter_forked_process(void *argc1, unsigned long argc2)
 {
+    KASSERT(argc2 == 1);
     // code you created or modified for ASST2 goes here
     as_activate();
 
