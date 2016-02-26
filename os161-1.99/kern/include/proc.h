@@ -46,15 +46,7 @@ struct vnode;
 struct semaphore;
 #endif // UW
 
-//#if OPT_A2
-#define PEXIT 0;
-#define PPORCESS 1;
-#define PNOPID -1;
-
-
-DECLARRAY(proc);
-DEFARRAY(proc, INLINE);
-
+#if OPT_A2
 struct array *proctree;
 struct lock *proc_lock;
 
@@ -63,7 +55,7 @@ int add_proctree(struct proc *p, struct proc *new);
 void remove_proctree(struct proc *p);
 struct proc* get_proctree(pid_t pid);
 void proc_exit(struct proc *p, int exitcode);
-//#endif //OPT_A2
+#endif //OPT_A2
 
 /*
  * Process structure.
@@ -89,11 +81,13 @@ struct proc {
 #endif
 
 	/* add more material here as needed */
+#if OPT_A2
     int state;
     int exitcode;
     pid_t curpid;
     pid_t parent_pid;
     struct cv *wait;
+#endif // OPT_A2
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -125,7 +119,7 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
-//#if OPT_A2
+#if OPT_A2
 int get_state(struct proc *proc);
 int get_exitcode(struct proc *proc);
 int get_curpid(struct proc *proc);
