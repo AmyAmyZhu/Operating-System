@@ -39,9 +39,9 @@ void sys__exit(int exitcode) {
 
   // Ensure synchronization in case another process is trying to getpid()
   // and inform the proctable that the process is exiting.
-  lock_acquire(procTableLock);
-    proctable_exit_process(p, exitcode);
-  lock_release(procTableLock);
+  lock_acquire(proc_lock);
+  proctable_exit_process(p, exitcode);
+  lock_release(proc_lock);
 
   thread_exit();
   /* thread_exit() does not return, so we should never get here */
@@ -73,7 +73,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
     return(EINVAL);
   }
 
-  lock_acquire(procTableLock);
+  lock_acquire(proc_lock);
     struct proc *child = proctable_get_process(pid);
     struct proc *parent = curproc;
 
@@ -88,7 +88,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
 
     // If any of the above errors were set, return error
     if (result) {
-      lock_release(procTableLock);
+      lock_release(proc_lock);
       return(result);
     }
     
@@ -97,7 +97,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
     // Need a while loop, Mesa semantics, because a different child could wake him up,
     // Even though the one we're waiting on here is still running
     while (getState(child) == PROC_RUNNING) {
-      cv_wait(child->wait_cv, procTableLock);
+      cv_wait(child->wait_cv, proc_lock);
     }
 
     // We are now awoken because we waited for the child to exit,

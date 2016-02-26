@@ -84,12 +84,12 @@ void proctable_bootstrap(void) {
     
     array_setsize(procTable, pidLimit);
     
-    procTableLock = lock_create("proctableLock");
+    proc_lock = lock_create("proc_lock");
     
     procCount = 0;
     
-    if (procTableLock == NULL) {
-        panic("could not create proctableLock");
+    if (proc_lock == NULL) {
+        panic("could not create proc_lock");
     }
     
     for (int i = MIN_PID; i < pidLimit; i++) {
@@ -102,7 +102,7 @@ void proctable_bootstrap(void) {
 // @proc_parent is the process that created it and must be assigned as its parent
 
 int proctable_add_process(struct proc *proc_created, struct proc *proc_parent) {
-    KASSERT(procTableLock != NULL);
+    KASSERT(proc_lock != NULL);
     KASSERT(proc_created != NULL);
     
     // Grow the proctable as more processes come in.
@@ -201,7 +201,7 @@ void proctable_exit_process(struct proc *proc_exited, int exitcode) {
     // Otherwise if proc_exited has a parent
     // then proc_exited must wake its potentially waiting parent
     else {
-        cv_signal(proc_exited->wait_cv, procTableLock);
+        cv_signal(proc_exited->wait_cv, proc_lock);
     }
 }
 
@@ -345,7 +345,7 @@ proc_create(const char *name)
 	}
 
 	else {
-		lock_acquire(procTableLock);
+		lock_acquire(proc_lock);
 		// since the kernel process is never destroyed, don't
 		// attach children to it
 		if (curproc == kproc) {
@@ -355,7 +355,7 @@ proc_create(const char *name)
 		else {
 			err = proctable_add_process(proc, curproc);
 		}
-		lock_release(procTableLock);
+		lock_release(proc_lock);
 	}
 
 	if (err) {

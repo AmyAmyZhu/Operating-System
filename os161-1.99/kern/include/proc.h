@@ -73,7 +73,7 @@ int pidLimit;
 struct array *procTable;
 
 // lock to shield critical sections, such as when a parent calls wait as child calls exit
-struct lock *procTableLock;
+struct lock *proc_lock;
 
 // Call once during system startup to allocate data structures.
 void proctable_bootstrap(void);
