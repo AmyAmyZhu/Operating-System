@@ -95,7 +95,7 @@ int get_parent_pid(struct proc *proc){
 
 void set_state(struct proc *proc, int state){
     KASSERT(proc != NULL);
-    KASSERT((state == PEXIT) || (state == PPORCESS));
+    //KASSERT((state == PEXIT) || (state == PPORCESS));
     proc->state = state;
 }
 
@@ -111,7 +111,7 @@ void set_curpid(struct proc *proc, int pid){
 
 void set_parent_pid(struct proc *proc, int pid){
     KASSERT(proc != NULL);
-    KASSERT((pid == PNOPID) || (pid > 0));
+    //KASSERT((pid == PNOPID) || (pid > 0));
     proc->parent_pid = pid;
 }
 
@@ -164,13 +164,13 @@ proc_create(const char *name)
     if(kproc == NULL){
         err = add_proctree(proc, NULL);
     } else {
-        lock_acquire();
+        lock_acquire(proc_lock);
         if(curproc == kproc){
             err = add_proctree(proc, NULL);
         } else {
             err = add_proctree(proc, curproc);
         }
-        lock_release();
+        lock_release(proc_lock);
     }
     if(err){
         return NULL;
