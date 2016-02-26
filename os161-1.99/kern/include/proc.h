@@ -52,8 +52,8 @@ struct semaphore;
 #define PNOPID -1;
 
 
-//DECLARRAY(proc);
-//DEFARRAY(proc, INLINE);
+DECLARRAY(proc);
+DEFARRAY(proc, INLINE);
 
 struct array *proctree;
 struct lock *proc_lock;
