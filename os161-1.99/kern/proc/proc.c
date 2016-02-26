@@ -132,7 +132,9 @@ void remove_proctree(struct proc *p){
     int pid = get_curpid(p);
     array_set(proctree, pid, NULL);
     num--;
+    kprintf("Here!!");
     proc_destroy(p);
+    kprintf("Here!!");
     DEBUG(DB_EXEC, "finish remove_proctree\n");
 }
 
@@ -156,12 +158,11 @@ void proc_exit(struct proc *p, int exitcode){
         }
     }
     
-    kprintf("%d\n",get_parent_pid(p));
-    /*if(get_parent_pid(p) == -1){
+    if(get_parent_pid(p) == -1){
         remove_proctree(p);
     } else {
         cv_signal(p->wait, proc_lock);
-    }*/
+    }
 }
 
 struct proc* get_proctree(pid_t pid){
