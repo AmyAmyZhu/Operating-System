@@ -58,6 +58,7 @@ struct semaphore;
 struct array *proctree;
 struct lock *proc_lock;
 
+void init_proctree(void);
 int add_proctree(struct proc *p, struct proc *new);
 void remove_proctree(struct proc *p);
 struct proc* get_proctree(pid_t pid);
