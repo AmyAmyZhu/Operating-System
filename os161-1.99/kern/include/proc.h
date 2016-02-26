@@ -70,7 +70,7 @@ int procCount;
 int pidLimit;
 
 // procTable to hold all processes
-struct procarray *procTable;
+struct array *procTable;
 
 // lock to shield critical sections, such as when a parent calls wait as child calls exit
 struct lock *procTableLock;

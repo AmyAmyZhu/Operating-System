@@ -76,13 +76,13 @@ void proctable_bootstrap(void) {
     
     // initial process limit to conserve memory
     pidLimit = 16;
-    procTable = procarray_create();
+    procTable = array_create();
     
     if (procTable == NULL) {
         panic("could not create proctable.");
     }
     
-    procarray_setsize(procTable, pidLimit);
+    array_setsize(procTable, pidLimit);
     
     procTableLock = lock_create("proctableLock");
     
@@ -93,7 +93,7 @@ void proctable_bootstrap(void) {
     }
     
     for (int i = MIN_PID; i < pidLimit; i++) {
-        procarray_set(procTable, i, NULL);
+        array_set(procTable, i, NULL);
     }
 }
 
@@ -110,7 +110,7 @@ int proctable_add_process(struct proc *proc_created, struct proc *proc_parent) {
     if (procCount == pidLimit - 1) {
         if (pidLimit < MAX_PID) {
             pidLimit = pidLimit * 2;
-            procarray_setsize(procTable, pidLimit);
+            array_setsize(procTable, pidLimit);
         }
         else {
             return -1;
@@ -119,9 +119,9 @@ int proctable_add_process(struct proc *proc_created, struct proc *proc_parent) {
     
     // Assign a PID to the new process
     for (int i = MIN_PID; i < pidLimit; i++) {
-        if (procarray_get(procTable, i) == NULL) {
+        if (array_get(procTable, i) == NULL) {
             setPID(proc_created, i);
-            procarray_set(procTable, i, proc_created);
+            array_set(procTable, i, proc_created);
             break;
         }
     }
@@ -176,7 +176,7 @@ void proctable_exit_process(struct proc *proc_exited, int exitcode) {
     
     // Find the children of proc_exited.
     for (int i = MIN_PID; i < pidLimit; i++) {
-        struct proc* cur = procarray_get(procTable, i);
+        struct proc* cur = array_get(procTable, i);
         if (cur != NULL && getPPID(cur) == exitedPID) {
             // Check state of child
             int state = getState(cur);
@@ -215,7 +215,7 @@ void proctable_remove_process(struct proc *proc_removed) {
     KASSERT(proc_removed != NULL);
     
     int pid = getPID(proc_removed);
-    procarray_set(procTable, pid, NULL);
+    array_set(procTable, pid, NULL);
     procCount--;
     
     /* if this is the last user process in the system, proc_destroy()
@@ -231,7 +231,7 @@ struct proc* proctable_get_process(pid_t pid) {
         return NULL;
     }
     
-    return procarray_get(procTable, pid);
+    return array_get(procTable, pid);
 }
 
 
