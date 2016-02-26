@@ -101,9 +101,33 @@ sys_waitpid(pid_t pid,
     return(EINVAL);
   }
   /* for now, just pretend the exitstatus is 0 */
-  exitstatus = 0;
-  result = copyout((void *)&exitstatus,status,sizeof(int));
-  if (result) {
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_waitpid\n");
+    lock_acquire(proc_lock);
+    struct proc *parent = curproc;
+    struct proc *children = get_proctree(pid);
+    
+    if(children == NULL){
+        result = ESRCH;
+    } else if(get_parent_pid(children) != get_curpid(parent)){
+        result = ECHILD;
+    }
+    
+    if(result){
+        lock_release(proc_lock);
+        return result;
+    }
+    
+    while(get_state(children) == 1){
+        cv_wait(children->wait, proc_lock);
+    }
+    exitstatus = get_exitcode(children);
+    lock_release(proc_lock);
+    DEBUG(DB_EXEC, "finish sys_waitpid\n");
+//#endif // OPT_A2
+    
+    result = copyout((void *)&exitstatus,status,sizeof(int));
+    if (result) {
     return(result);
   }
   *retval = pid;
