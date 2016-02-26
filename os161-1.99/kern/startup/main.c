@@ -108,9 +108,9 @@ boot(void)
 	/* Early initialization. */
 	ram_bootstrap();
     
-    //DEBUG(DB_EXEC, "start init_proctree\n");
-    //init_proctree();
-    //DEBUG(DB_EXEC, "finish init_proctree\n");
+    DEBUG(DB_EXEC, "start init_proctree\n");
+    init_proctree();
+    DEBUG(DB_EXEC, "finish init_proctree\n");
 
 	proc_bootstrap();
 	thread_bootstrap();
