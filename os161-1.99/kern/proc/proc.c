@@ -138,7 +138,8 @@ void remove_proctree(struct proc *p){
 
 void proc_exit(struct proc *p, int exitcode){
     KASSERT(p != NULL);
-    DEBUG(DB_EXEC, "start proc_exit\n");
+    KASSERT(p->curpid > 0);
+    
     set_state(p, 0);
     set_exitcode(p, _MKWAIT_EXIT(exitcode));
     int exit_pid = get_curpid(p);
@@ -160,8 +161,6 @@ void proc_exit(struct proc *p, int exitcode){
     } else {
         cv_signal(p->wait, proc_lock);
     }
-    DEBUG(DB_EXEC, "finish proc_exit\n");
-
 }
 
 struct proc* get_proctree(pid_t pid){

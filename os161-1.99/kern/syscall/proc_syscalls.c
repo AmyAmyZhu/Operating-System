@@ -47,7 +47,7 @@ void sys__exit(int exitcode) {
 //#if OPT_A2
     DEBUG(DB_EXEC, "start sys_exit\n");
     lock_acquire(proc_lock);
-    //proc_exit(p, exitcode);
+    proc_exit(p, exitcode);
     lock_release(proc_lock);
     DEBUG(DB_EXEC, "finish sys_exit\n");
 //#endif // OPT_A2
