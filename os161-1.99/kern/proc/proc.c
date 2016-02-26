@@ -354,7 +354,7 @@ proc_destroy(struct proc *proc)
      the proc_count unconditionally here */
     P(proc_count_mutex);
     KASSERT(proc_count > 0);
-    proc_count--;
+    //proc_count--;
     /* signal the kernel menu thread if the process count has reached zero */
     if (proc_count == 0) {
         V(no_proc_sem);
