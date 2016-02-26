@@ -252,9 +252,9 @@ proc_create(const char *name)
     } else {
         lock_acquire(proc_lock);
         if(curproc == kproc){
-            err = 0; //add_proctree(proc, NULL);
+            err = add_proctree(proc, NULL);
         } else {
-            err = 0; //add_proctree(proc, curproc);
+            err = add_proctree(proc, curproc);
         }
         lock_release(proc_lock);
     }
