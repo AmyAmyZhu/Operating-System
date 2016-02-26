@@ -46,7 +46,7 @@ void sys__exit(int exitcode) {
 
 //#if OPT_A2
     lock_acquire(proc_lock);
-    exit(p, exitcode);
+    proc_exit(p, exitcode);
     lock_release(proc_lock);
 //#endif // OPT_A2
   /* if this is the last user process in the system, proc_destroy()

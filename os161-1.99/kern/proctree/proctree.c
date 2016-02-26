@@ -51,7 +51,7 @@ void remove_proctree(struct proc *p){
     proc_destroy(p);
 }
 
-void exit(struct proc *p, int exitcode){
+void proc_exit(struct proc *p, int exitcode){
     KASSERT(p != NULL);
     
     set_state(p, PEXIT);

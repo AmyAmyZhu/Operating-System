@@ -18,7 +18,7 @@ struct lock *proc_lock;
 int add_proctree(struct proc *p, struct proc *new);
 void remove_proctree(struct proc *p);
 struct proc* get_proctree(pid_t pid);
-void exit(struct proc *p, int exitcode);
+void proc_exit(struct proc *p, int exitcode);
 
 //#endif // OPT_A2
 
