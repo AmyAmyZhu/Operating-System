@@ -129,6 +129,6 @@ void set_state(struct proc *proc, int state);
 void set_exitcode(struct proc *proc, int exitcode);
 void set_curpid(struct proc *proc, int pid);
 void set_parent_pid(struct proc *proc, int pid);
-//#endif // OPT_A2
+#endif // OPT_A2
 
 #endif /* _PROC_H_ */
