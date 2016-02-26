@@ -98,7 +98,7 @@ int add_proctree(struct proc *p, struct proc *new){
             break;
         }
     }
-    */
+    
     if(get_curpid(p) == -1){
         return -1;
     }
@@ -108,7 +108,7 @@ int add_proctree(struct proc *p, struct proc *new){
     } else {
         set_parent_pid(p, get_curpid(new));
     }
-    set_state(p, 1);
+    set_state(p, 1);*/
     return 0;
 }
 
@@ -245,9 +245,9 @@ proc_create(const char *name)
     } else {
         lock_acquire(proc_lock);
         if(curproc == kproc){
-            err = add_proctree(proc, NULL);
+            err = 0; //add_proctree(proc, NULL);
         } else {
-            err = add_proctree(proc, curproc);
+            err = 0; //add_proctree(proc, curproc);
         }
         lock_release(proc_lock);
     }
