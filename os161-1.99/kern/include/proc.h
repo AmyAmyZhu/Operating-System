@@ -47,23 +47,10 @@ struct semaphore;
 #endif // UW
 
 #if OPT_A2
-extern int curpid;
-extern struct lock *p_lock;
-extern struct array *arr;
+#define PEXIT 0;
+#define PPORCESS 1;
+#define PNOPID -1;
 #endif //OPT_A2
-
-#if OPT_A2
-struct proctree{
-    int exitcode;
-    pid_t proctree_pid;
-    pid_t parent;
-    struct array *children;
-    struct semaphore *sem;
-};
-
-struct proctree *init_proctree(struct proc *proc, int curpid);
-int update(int i, int curpid, struct array *arr);
-#endif // OPT_A2
 
 /*
  * Process structure.
@@ -89,6 +76,11 @@ struct proc {
 #endif
 
 	/* add more material here as needed */
+    int state;
+    int exitcode;
+    pid_t curpid;
+    pid_t parent_pid;
+    struct cv *wait;
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
@@ -121,9 +113,15 @@ struct addrspace *curproc_getas(void);
 struct addrspace *curproc_setas(struct addrspace *);
 
 #if OPT_A2
-struct lock *get_plock();
-int get_exitcode(pid_t proctree_pid);
-int is_children(int find);
+int get_state(struct proc *proc);
+int get_exitcode(struct proc *proc);
+int get_curpid(struct proc *proc);
+int get_parent_pid(struct proc *proc);
+
+void set_state(struct proc *proc, int state);
+void set_exitcode(struct proc *proc, int exitcode);
+void set_curpid(struct proc *proc, int pid);
+void set_parent_pid(struct proc *proc, int pid);
 #endif // OPT_A2
 
 

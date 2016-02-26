@@ -28,7 +28,6 @@
  */
 
 #include "opt-A2.h"
-//#include <addrspace.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
@@ -37,6 +36,7 @@
 #include <thread.h>
 #include <current.h>
 #include <syscall.h>
+#include <addrspace.h>
 
 /*
  * System call dispatcher.
@@ -186,9 +186,10 @@ void
 enter_forked_process(struct trapframe *tf)
 {
     // code you created or modified for ASST2 goes here
-    struct trapframe stack = *tf;
     as_activate();
-    
+
+    struct trapframe stack = *tf;
+    kfree(tf);
     
     stack.tf_a3 = 0;
     stack.tf_v0 = 0; // no children
@@ -199,7 +200,6 @@ enter_forked_process(struct trapframe *tf)
     stack.tf_epc += 4;
     
     mips_usermode(&stack);
-    panic("enter_forked_process: can not return from mips_usermode()");
 }
 #else
 void
