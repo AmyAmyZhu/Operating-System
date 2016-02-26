@@ -1,3 +1,4 @@
+#include "opt-A2.h"
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/unistd.h>
@@ -6,18 +7,25 @@
 #include <syscall.h>
 #include <current.h>
 #include <proc.h>
+#include <synch.h>
+//#include <proctree.h>
 #include <thread.h>
 #include <addrspace.h>
 #include <copyinout.h>
 #include <mips/trapframe.h>
 #include <vfs.h>
 #include <kern/fcntl.h>
-#include <synch.h>
+
+  /* this implementation of sys__exit does not do anything with the exit code */
+  /* this needs to be fixed to get exit() and waitpid() working properly */
 
 void sys__exit(int exitcode) {
 
   struct addrspace *as;
   struct proc *p = curproc;
+  /* for now, just include this to keep the compiler from complaining about
+     an unused variable */
+  (void)exitcode;
 
   DEBUG(DB_SYSCALL,"Syscall: _exit(%d)\n",exitcode);
 
@@ -36,143 +44,125 @@ void sys__exit(int exitcode) {
   /* detach this thread from its process */
   /* note: curproc cannot be used after this call */
   proc_remthread(curthread);
-
-  // Ensure synchronization in case another process is trying to getpid()
-  // and inform the proctable that the process is exiting.
-  lock_acquire(proc_lock);
-  proc_exit(p, exitcode);
-  lock_release(proc_lock);
-
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_exit\n");
+    lock_acquire(proc_lock);
+    proc_exit(p, exitcode);
+    lock_release(proc_lock);
+    DEBUG(DB_EXEC, "finish sys_exit\n");
+//#endif // OPT_A2
+  /* if this is the last user process in the system, proc_destroy()
+     will wake up the kernel menu thread */
+  proc_destroy(p);
+  
   thread_exit();
   /* thread_exit() does not return, so we should never get here */
   panic("return from thread_exit in sys_exit\n");
 }
 
+
+/* stub handler for getpid() system call                */
 int
 sys_getpid(pid_t *retval)
 {
-  KASSERT(curproc != NULL);
-
-  struct proc *p = curproc;
-
-  // return the current process' PID.
-  *retval = get_curpid(p);
-  return(0);
+  /* for now, this is just a stub that always returns a PID of 1 */
+  /* you need to fix this to make it work properly */
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_getpid\n");
+    KASSERT(curproc != NULL);
+    struct proc *new = curproc;
+    *retval = get_curpid(new);
+    DEBUG(DB_EXEC, "finish sys_getpid\n");
+//#endif // OPT_A2
+    return(0);
 }
 
+/* stub handler for waitpid() system call                */
+
 int
-sys_waitpid(pid_t pid, // pid that you want to wait for
-	    userptr_t status, // status address you want the exitcode returned in
-	    int options, // number of options
-	    pid_t *retval) // return value for waitpid, if success should be pid of process waitee.
+sys_waitpid(pid_t pid,
+	    userptr_t status,
+	    int options,
+	    pid_t *retval)
 {
-  int exitstatus = 0;
-  int result = 0;
+  int exitstatus;
+  int result;
+
+  /* this is just a stub implementation that always reports an
+     exit status of 0, regardless of the actual exit status of
+     the specified process.   
+     In fact, this will return 0 even if the specified process
+     is still running, and even if it never existed in the first place.
+
+     Fix this!
+  */
 
   if (options != 0) {
     return(EINVAL);
   }
-
-  lock_acquire(proc_lock);
-    struct proc *child = get_proctree(pid);
+  /* for now, just pretend the exitstatus is 0 */
+//#if OPT_A2
+    DEBUG(DB_EXEC, "start sys_waitpid\n");
+    lock_acquire(proc_lock);
     struct proc *parent = curproc;
-
-    // Error if PID waited on does not refer to a valid process
-    if (child == NULL) {
-      result = ESRCH;
-    }
-    // Error if requested PID was not a child of parent process
-    else if (get_parent_pid(child) != get_curpid(parent)) {
-      result = ECHILD;
-    }
-
-    // If any of the above errors were set, return error
-    if (result) {
-      lock_release(proc_lock);
-      return(result);
+    struct proc *children = get_proctree(pid);
+    
+    if(children == NULL){
+        result = ESRCH;
+    } else if(get_parent_pid(children) != get_curpid(parent)){
+        result = ECHILD;
     }
     
-    // Otherwise, if waitpid call was valid, check to see if child has exited.
-    // If child is still running, have parent wait for child to exit
-    // Need a while loop, Mesa semantics, because a different child could wake him up,
-    // Even though the one we're waiting on here is still running
-    while (getState(child) == PROC_RUNNING) {
-      cv_wait(child->wait_cv, proc_lock);
+    if(result){
+        lock_release(proc_lock);
+        return result;
     }
-
-    // We are now awoken because we waited for the child to exit,
-    // or the child had already exited. Either way, we can now collect
-    // their exit code. We will remove them from proctable when we exit.
-    exitstatus = get_exitcode(child);
-
-  lock_release(proc_lock);
-
-  // copy the exitstatus of the process from kernel address space to
-  // user space, at the address of the user address `status` that was passed in for that purpose.
-  result = copyout((void *)&exitstatus,status,sizeof(int));
-
-  if (result) {
+    
+    while(get_state(children) == 1){
+        cv_wait(children->wait, proc_lock);
+    }
+    exitstatus = get_exitcode(children);
+    lock_release(proc_lock);
+    DEBUG(DB_EXEC, "finish sys_waitpid\n");
+//#endif // OPT_A2
+    
+    result = copyout((void *)&exitstatus,status,sizeof(int));
+    if (result) {
     return(result);
   }
-
-  // the return value of waitpid is always the PID of the process
-  // whose exit status goes in `status`, in OS161
   *retval = pid;
   return(0);
 }
 
-int sys_fork(struct trapframe* tf, pid_t *retval) {
-  struct proc* proc_created = proc_create_runprogram("Forked process");
-  struct addrspace* as;
-  int result;
-
-  // could not create child due to memory constraints
-  if (proc_created == NULL) {
-    return ENOMEM;
-  }
-
-  // the parent needs to return the retval of the child
-  // synchronization is not required since the only one interested
-  // in the child process is the parent and we are the parent
-  *retval = get_curpid(proc_created);
-
-  // allocate duplicate trapframe on kernel heap for child process
-  struct trapframe* dupTrap = kmalloc(sizeof(struct trapframe));
-
-  if (dupTrap == NULL) {
-    return ENOMEM;
-  }
-
-  memcpy(dupTrap, tf, sizeof(struct trapframe));
-  
-  // copy the address space of the parent process
-  result = as_copy(curproc_getas(), &as);
-  if (result) {
-    return result;
-  }
-  
-  // if successful, now set the new proc's address space
-  // to be the copied parent's. We don't need any synchronization to do this
-  // because only the parent knows about this child and it is not yet running
-  proc_created->p_addrspace = as;
-
-  // we are now ready to create the child process using thread_fork
-  DEBUG(DB_EXEC, "Starting Forked program\n");
-
-  result = thread_fork("Forked thread", // name of thread
-                        proc_created, // process to attach thread to
-                        enter_forked_process, // entrypoint function
-                        (void *)dupTrap, // pass trapframe as data
-                        1 // pass in as number of args
-                      );
-
-  if (result) {
-    kfree(dupTrap);
-    return result;
-  }
-
-  // If there has been no error in thread_fork, then the child process is now running
-  // and could run before this code is executed
-
-  return 0;
+int sys_fork(struct trapframe *tf, pid_t *retval){
+    KASSERT(curproc != NULL);
+    DEBUG(DB_EXEC, "start sys_fork\n");
+    struct proc* p = proc_create_runprogram("system_fork");
+    if(p == NULL){
+        return ENOMEM;
+    }
+    struct trapframe *c_trap = kmalloc(sizeof(struct trapframe));
+    if(c_trap == NULL){
+        return ENOMEM;
+    }
+    
+    *retval = get_curpid(p);
+    memcpy(c_trap, tf, sizeof(struct trapframe));
+    
+    struct addrspace *c_addr;
+    int result = as_copy(curproc_getas(), &c_addr);
+    
+    if(result){
+        return result;
+    }
+    
+    p->p_addrspace = c_addr;
+    
+    result = thread_fork("check_fork", p, enter_forked_process, c_trap, 1);
+    if(result){
+        kfree(c_trap);
+        return result;
+    }
+    DEBUG(DB_EXEC, "finish sys_fork\n");
+    return 0;
 }
