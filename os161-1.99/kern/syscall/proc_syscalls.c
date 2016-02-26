@@ -131,7 +131,7 @@ sys_waitpid(pid_t pid,
 //#if OPT_A2
 // code you created or modified for ASST2 goes here
 
-int sys_fork(struct trapframe *tf, pid_t *retval){
+/*int sys_fork(struct trapframe *tf, pid_t *retval){
     KASSERT(curproc != NULL);
     
     struct proc* p = proc_create_runprogram("system_fork");
@@ -155,8 +155,7 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
     
     p->p_addrspace = c_addr;
     
-    DEBUG(DB_EXEC, "fork");
-    result = thread_fork("Forked thread", p, enter_forked_process, (void *) c_trap, 0);
+    result = thread_fork("Forked thread", p, enter_forked_process, (void *) c_trap, 1);
     //result = thread_fork("check_fork", p, enter_forked_process, c_trap, 1);
     if(result){
         kfree(c_trap);
@@ -164,7 +163,64 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
     }
     
     return 0;
+}*/
+
+int sys_fork(struct trapframe* tf, pid_t *retval) {
+    struct proc* proc_created = proc_create_runprogram("Forked process");
+    struct addrspace* as;
+    int result;
+    
+    // could not create child due to memory constraints
+    if (proc_created == NULL) {
+        return ENOMEM;
+    }
+    
+    // the parent needs to return the retval of the child
+    // synchronization is not required since the only one interested
+    // in the child process is the parent and we are the parent
+    *retval = getPID(proc_created);
+    
+    // allocate duplicate trapframe on kernel heap for child process
+    struct trapframe* dupTrap = kmalloc(sizeof(struct trapframe));
+    
+    if (dupTrap == NULL) {
+        return ENOMEM;
+    }
+    
+    memcpy(dupTrap, tf, sizeof(struct trapframe));
+    
+    // copy the address space of the parent process
+    result = as_copy(curproc_getas(), &as);
+    if (result) {
+        return result;
+    }
+    
+    // if successful, now set the new proc's address space
+    // to be the copied parent's. We don't need any synchronization to do this
+    // because only the parent knows about this child and it is not yet running
+    proc_created->p_addrspace = as;
+    
+    // we are now ready to create the child process using thread_fork
+    DEBUG(DB_EXEC, "Starting Forked program\n");
+    
+    result = thread_fork("Forked thread", // name of thread
+                         proc_created, // process to attach thread to
+                         enter_forked_process, // entrypoint function
+                         (void *)dupTrap, // pass trapframe as data
+                         1 // pass in as number of args
+                         );
+    
+    if (result) {
+        kfree(dupTrap);
+        return result;
+    }
+    
+    // If there has been no error in thread_fork, then the child process is now running
+    // and could run before this code is executed
+    
+    return 0;
 }
+
 // old (pre-A2) version of the code goes here,
 //  and is ignored by the compiler when you compile ASST2
 // the ‘‘else’’ part is optional and can be left
