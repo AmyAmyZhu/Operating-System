@@ -158,7 +158,7 @@ void proc_exit(struct proc *p, int exitcode){
     
     if(get_parent_pid(p) == -1){
         //kprintf("Here!!come remove proctree\n");
-        //remove_proctree(p);
+        remove_proctree(p);
         //kprintf("Here!!leave remove proctree\n");
     } else {
         //cv_signal(p->wait, proc_lock);
