@@ -51,6 +51,7 @@
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
 
+
 /*
  * These two pieces of data are maintained by the makefiles and build system.
  * buildconfig is the name of the config file the kernel was configured with.
@@ -100,20 +101,12 @@ boot(void)
 	kprintf("%s", harvard_copyright);
 	kprintf("\n");
 
-	kprintf("Dan Reynolds' system version %s (%s #%d)\n", 
+	kprintf("Put-your-group-name-here's system version %s (%s #%d)\n", 
 		GROUP_VERSION, buildconfig, buildversion);
 	kprintf("\n");
 
 	/* Early initialization. */
 	ram_bootstrap();
-
-	// System proctable setup for A2A
-  DEBUG(DB_EXEC, "Bootstrapping proctable\n");
-
-	proctable_bootstrap();
-
-  DEBUG(DB_EXEC, "Finished Bootstrapping proctable\n");
-
 	proc_bootstrap();
 	thread_bootstrap();
 	hardclock_bootstrap();
@@ -132,6 +125,10 @@ boot(void)
 	vm_bootstrap();
 	kprintf_bootstrap();
 	thread_start_cpus();
+
+#if OPT_A3
+	initialize_coremap();
+#endif 
 
 	/* Default bootfs - but ignore failure, in case emu0 doesn't exist */
 	vfs_setbootfs("emu0");

@@ -35,62 +35,27 @@
  *
  * Note: curproc is defined by <current.h>.
  */
-
+#include "opt-A2.h"
 #include <spinlock.h>
 #include <thread.h> /* required for struct threadarray */
-#include "opt-A2.h"
 
 struct addrspace;
+
 struct vnode;
+
 #ifdef UW
 struct semaphore;
 #endif // UW
 
-#define PROC_EXITED 0
-#define PROC_RUNNING 1
-#define PROC_NO_PID -1
 
-#define MAX_PID 256
-
-// Begins at 1 because in wait.h, PID 0 is defined in a special way for process groups
-// 1 is reserved for the kernel process.
-#define MIN_PID 1
-
-/*
- * Array of processes.
- */
-#ifndef PROCINLINE
-#define PROCINLINE INLINE
+#if OPT_A2
+ 	#ifndef PROCINLINE
+	#define PROCINLINE INLINE
+	#endif
+	
+	DECLARRAY_BYTYPE(procarray, struct proc); 
+	DEFARRAY_BYTYPE(procarray, struct proc, PROCINLINE);
 #endif
-
-DECLARRAY(proc);
-DEFARRAY(proc, PROCINLINE);
-
-int procCount;
-int pidLimit;
-
-// procTable to hold all processes
-struct array *procTable;
-
-// lock to shield critical sections, such as when a parent calls wait as child calls exit
-struct lock *proc_lock;
-
-// Call once during system startup to allocate data structures.
-void proctable_bootstrap(void);
-
-// Add process to table, associate it with its parent
-int proctable_add_process(struct proc *proc_created, struct proc *proc_parent);
-
-// Switch a process from running to exiting
-void proc_exit(struct proc *proc_exited, int exitCode);
-
-// Remove a process from the process table
-void proctable_remove_process(struct proc *proc_removed);
-
-// Return a process from the proctable
-struct proc* get_proctree(pid_t pid);
-
-#endif /* _PROCTABLE_H_ */
 
 
 /*
@@ -117,14 +82,28 @@ struct proc {
 #endif
 
 	/* add more material here as needed */
-
-  pid_t p_pid; // Process id of current process.
-  pid_t p_ppid; // Process id of parent process.
-  int p_state; // State of the process, running or exited.
-  int p_exitcode; // Exit code.
-  struct cv *wait_cv; // parent proc waits on this cv until its child exits.
+#if OPT_A2
+	pid_t p_pid;
+	int p_exitcode;
+ 	bool exitable;
+ 	struct proc *p_pproc; // parent proc
+ 	struct procarray p_children;
+ 	struct lock *p_waitpid_lk;
+ 	struct cv *p_waitpid_cv;
+#endif
 
 };
+
+
+#if OPT_A2
+	void detach_children_proc(struct proc *p);
+	bool if_procchild(struct proc *p, pid_t child_pid);
+	struct proc *proc_get_by_pid(pid_t pid);
+	
+	struct lock;
+	extern struct lock *ptable_lk;
+#endif
+
 
 /* This is the process structure for the kernel and for kernel-only threads. */
 extern struct proc *kproc;
@@ -155,26 +134,5 @@ struct addrspace *curproc_getas(void);
 /* Change the address space of the current process, and return the old one. */
 struct addrspace *curproc_setas(struct addrspace *);
 
-// Returns the process' exitcode
-int get_exitcode(struct proc *proc);
 
-// Returns the process' PID
-int get_curpid(struct proc *proc);
-
-// Returns the process' PPID
-int get_parent_pid(struct proc *proc);
-
-// Returns the process' state
-int getState(struct proc *proc);
-
-// Sets the process' exitcode
-void setExitcode(struct proc *proc, int exitcode);
-
-// Sets the process' PID
-void setPID(struct proc *proc, int newPID);
-
-// Sets the process' PPID
-void setPPID(struct proc *proc, int newPPID);
-
-// Sets the process' state
-void setState(struct proc *proc, int newState);
+#endif /* _PROC_H_ */

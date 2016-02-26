@@ -41,17 +41,19 @@
  * Unless you're implementing multithreaded user processes, the only
  * process that will have more than one thread is the kernel process.
  */
+#define PROCINLINE
 
 #include <types.h>
-#include <synch.h>
+#include <array.h>
 #include <proc.h>
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
 #include <vfs.h>
-#include <kern/fcntl.h>  
+#include <synch.h>
+#include <kern/fcntl.h>
 #include <kern/wait.h>
-
+#include "opt-A2.h"
 
 /*
  * The process for the kernel; this holds all the kernel-only threads.
@@ -68,231 +70,13 @@ static unsigned int proc_count;
 /* it would be better to use a lock here, but we use a semaphore because locks are not implemented in the base kernel */ 
 static struct semaphore *proc_count_mutex;
 /* used to signal the kernel menu thread when there are no processes */
-struct semaphore *no_proc_sem;
+struct semaphore *no_proc_sem;   
 #endif  // UW
 
-
-void proctable_bootstrap(void) {
-    
-    // initial process limit to conserve memory
-    pidLimit = 16;
-    procTable = array_create();
-    
-    if (procTable == NULL) {
-        panic("could not create proctable.");
-    }
-    
-    array_setsize(procTable, pidLimit);
-    
-    proc_lock = lock_create("proc_lock");
-    
-    procCount = 0;
-    
-    if (proc_lock == NULL) {
-        panic("could not create proc_lock");
-    }
-    
-    for (int i = MIN_PID; i < pidLimit; i++) {
-        array_set(procTable, i, NULL);
-    }
-}
-
-// Add process to table
-// @proc_created is the newly created process
-// @proc_parent is the process that created it and must be assigned as its parent
-
-int proctable_add_process(struct proc *proc_created, struct proc *proc_parent) {
-    KASSERT(proc_lock != NULL);
-    KASSERT(proc_created != NULL);
-    
-    // Grow the proctable as more processes come in.
-    // Subtract 1 for zero-indexing.
-    if (procCount == pidLimit - 1) {
-        if (pidLimit < MAX_PID) {
-            pidLimit = pidLimit * 2;
-            array_setsize(procTable, pidLimit);
-        }
-        else {
-            return -1;
-        }
-    }
-    
-    // Assign a PID to the new process
-    for (int i = MIN_PID; i < pidLimit; i++) {
-        if (array_get(procTable, i) == NULL) {
-            setPID(proc_created, i);
-            array_set(procTable, i, proc_created);
-            break;
-        }
-    }
-    
-    // Check to see if a PID was available
-    if (get_curpid(proc_created) == PROC_NO_PID) {
-        return -1;
-    }
-    
-    DEBUG(DB_EXEC, "New process in table: %d\n", get_curpid(proc_created));
-    
-    // Increase the count of processes in the procTable
-    procCount++;
-    
-    // Assign the process' parent PID
-    if (proc_parent == NULL) {
-        setPPID(proc_created, PROC_NO_PID);
-    }
-    else {
-        setPPID(proc_created, get_curpid(proc_parent));
-    }
-    
-    // Finally, set the state of the proces to running
-    setState(proc_created, PROC_RUNNING);
-    
-    return 0;
-}
-
-// Switch a process from running state to exited state.
-// The PID of the process remains in the table until its parent,
-// the only interested party, also exits.
-// @proc_exited is the process that has finished
-// @exitcode is the exitcode the process finished with
-
-void proc_exit(struct proc *proc_exited, int exitcode) {
-    // DEBUG(DB_EXEC, "Exiting PID: %d from proctable\n", getPID(proc_exited));
-    
-    KASSERT(proc_exited != NULL);
-    KASSERT(proc_exited->p_pid > 0);
-    
-    // set the process state to exited
-    setState(proc_exited, PROC_EXITED);
-    
-    // encode the exit code as per the docs.
-    setExitcode(proc_exited, _MKWAIT_EXIT(exitcode));
-    
-    // Next we need to evaluate some cases:
-    // If proc_exited has living children, they should now have a NULL parent.
-    // If proc_exited has dead children, they should now be destroyed.
-    
-    int exitedPID = get_curpid(proc_exited);
-    
-    // Find the children of proc_exited.
-    for (int i = MIN_PID; i < pidLimit; i++) {
-        struct proc* cur = array_get(procTable, i);
-        if (cur != NULL && get_parent_pid(cur) == exitedPID) {
-            // Check state of child
-            int state = getState(cur);
-            
-            // A running child has its parent set to NULL
-            if (state == PROC_RUNNING) {
-                setPPID(cur, PROC_NO_PID);
-            }
-            
-            // An exited child can now be completely removed.
-            else if (state == PROC_EXITED) {
-                proctable_remove_process(cur);
-            }
-        }
-    }
-    
-    // If proc_exited has no parent, it can be removed
-    if (get_parent_pid(proc_exited) == PROC_NO_PID) {
-        proctable_remove_process(proc_exited);
-    }
-    
-    // Otherwise if proc_exited has a parent
-    // then proc_exited must wake its potentially waiting parent
-    else {
-        cv_signal(proc_exited->wait_cv, proc_lock);
-    }
-}
-
-// Remove a process from the process table. This frees the
-// PID to be used by another process and destroys all remaining
-// information about the process, including any reference to its
-// exitcode.
-// @proc_removed is the process to be removed from the table.
-
-void proctable_remove_process(struct proc *proc_removed) {
-    KASSERT(proc_removed != NULL);
-    
-    int pid = get_curpid(proc_removed);
-    array_set(procTable, pid, NULL);
-    procCount--;
-    
-    /* if this is the last user process in the system, proc_destroy()
-     will wake up the kernel menu thread */
-    proc_destroy(proc_removed);
-}
-
-// Return a process from the process table
-// @pid is the PID of the process to be retrieved
-
-struct proc* get_proctree(pid_t pid) {
-    if (pid < MIN_PID || pid > MAX_PID) {
-        return NULL;
-    }
-    
-    return array_get(procTable, pid);
-}
-
-
-// Returns the process' exitcode
-int get_exitcode(struct proc *proc) {
-	KASSERT(proc != NULL);
-
-	return proc->p_exitcode;
-}
-
-// Returns the processes' PID
-int get_curpid(struct proc *proc) {
-	KASSERT(proc != NULL);
-
-	return proc->p_pid;
-}
-
-// Returns the processes' PPID
-int get_parent_pid(struct proc *proc) {
-	KASSERT(proc != NULL);
-
-	return proc->p_ppid;
-}
-
-// Returns the process' state
-int getState(struct proc *proc) {
-	KASSERT(proc != NULL);
-
-	return proc->p_state;
-}
-
-// Sets the process' PID, should only happen once when added to process table
-void setPID(struct proc *proc, int newPID) {
-	KASSERT(proc != NULL);
-	KASSERT((newPID >= MIN_PID && newPID <= MAX_PID) || newPID == PROC_NO_PID);
-
-	proc->p_pid = newPID;
-}
-
-// Sets the process' PPID
-void setPPID(struct proc *proc, int newPPID) {
-	KASSERT(proc != NULL);
-	KASSERT(newPPID == PROC_NO_PID || newPPID > 0);
-
-	proc->p_ppid = newPPID;
-}
-
-// Sets the process' state
-void setState(struct proc *proc, int newState) {
-	KASSERT(proc != NULL);
-	KASSERT(newState == PROC_RUNNING || newState == PROC_EXITED);
-
-	proc->p_state = newState;
-}
-
-// Sets the process' exitcode
-void setExitcode(struct proc *proc, int exitcode) {
-	KASSERT(proc != NULL);
-
-	proc->p_exitcode = exitcode;
-}
+#if OPT_A2 
+static struct procarray procs;
+struct lock *ptable_lk;
+#endif
 
 /*
  * Create a proc structure.
@@ -313,12 +97,6 @@ proc_create(const char *name)
 		return NULL;
 	}
 
-	proc->wait_cv = cv_create("procCV");
-	if (proc->wait_cv == NULL) {
-		kfree(proc);
-		return NULL;
-	}
-
 	threadarray_init(&proc->p_threads);
 	spinlock_init(&proc->p_lock);
 
@@ -332,37 +110,32 @@ proc_create(const char *name)
 	proc->console = NULL;
 #endif // UW
 
-	// initialize PID to invalid
-	setPID(proc, PROC_NO_PID);
+#if OPT_A2
+	// initialization
+	procarray_init(&proc->p_children);
+    proc->p_exitcode = 0;
+    proc->exitable = false;
+	proc->p_pproc = NULL;
 
-	// Add newly created process to the process table.
-	// Don't acquire the lock if you're the first process, since threads for synchronization
-	// primitives have not been set up.
-	int err = 0;
-
-	if (kproc == NULL) {
-		err = proctable_add_process(proc, NULL);
+    proc->p_waitpid_lk = lock_create("p_waitpid_lk");
+	if (proc->p_waitpid_lk == NULL) {
+		panic("proc_create: could not create p_waitpid_lk");
 	}
 
-	else {
-		lock_acquire(proc_lock);
-		// since the kernel process is never destroyed, don't
-		// attach children to it
-		if (curproc == kproc) {
-			err = proctable_add_process(proc, NULL);
-		}
-
-		else {
-			err = proctable_add_process(proc, curproc);
-		}
-		lock_release(proc_lock);
+	proc->p_waitpid_cv = cv_create("p_waitpid_cv");
+	if (proc->p_waitpid_cv == NULL) {
+		panic("proc_create: could not create process cv");
 	}
 
-	if (err) {
-		return NULL;
-	}
+	// assign pid to new proc
+	unsigned index;
+	procarray_fill(&procs, proc, &index);
+	proc->p_pid = index;
 
 	return proc;
+#else
+	return proc;
+#endif
 }
 
 /*
@@ -426,7 +199,42 @@ proc_destroy(struct proc *proc)
 	spinlock_cleanup(&proc->p_lock);
 
 	kfree(proc->p_name);
+
+#if OPT_A2
+	// Detach proc's children processes. 
+	detach_children_proc(proc);	
+
+	// Delete proc from its parent's children array. 
+	struct proc *parent = proc->p_pproc;
+	if (parent != NULL)
+	{
+		spinlock_acquire(&parent->p_lock);
+		for (unsigned i = 0; i< procarray_num(&parent->p_children); i++){
+			struct proc *child = procarray_get(&procs, i);
+			if (child->p_pid == proc->p_pid){
+				procarray_remove(&parent->p_children, i);
+				break;
+			}
+		}
+		spinlock_release(&parent->p_lock);
+	}
+
+	// Delete from process table
+	if (parent == NULL) {
+		// Clean up self-defined properties
+		lock_destroy(proc->p_waitpid_lk);
+		cv_destroy(proc->p_waitpid_cv);
+
+		// Delete proc from process table
+		lock_acquire(ptable_lk);
+			procarray_set(&procs, proc->p_pid, NULL);
+		lock_release(ptable_lk);
+		kfree(proc);
+	}
+#else 
 	kfree(proc);
+#endif
+
 
 #ifdef UW
 	/* decrement the process count */
@@ -452,6 +260,17 @@ proc_destroy(struct proc *proc)
 void
 proc_bootstrap(void)
 {
+
+#if OPT_A2
+  procarray_init(&procs);
+  
+  ptable_lk = lock_create("ptable_lock");
+  if (ptable_lk == NULL) {
+  	panic("could not create ptable_lk\n");
+  }
+
+#endif
+
   kproc = proc_create("[kernel]");
   if (kproc == NULL) {
     panic("proc_create for kproc failed\n");
@@ -466,7 +285,8 @@ proc_bootstrap(void)
   if (no_proc_sem == NULL) {
     panic("could not create no_proc_sem semaphore\n");
   }
-#endif // UW 
+#endif // UW
+
 }
 
 /*
@@ -485,6 +305,14 @@ proc_create_runprogram(const char *name)
 	if (proc == NULL) {
 		return NULL;
 	}
+
+#if OPT_A2
+	int result = procarray_add(&procs, proc, NULL);
+    if (result){
+    	// DEBUG(DB_SYSCALL, "procarray_add failed\n");
+    	panic("procarray_add failed\n");
+    }
+#endif
 
 #ifdef UW
 	/* open the console - this should always succeed */
@@ -623,3 +451,47 @@ curproc_setas(struct addrspace *newas)
 	spinlock_release(&proc->p_lock);
 	return oldas;
 }
+
+#if OPT_A2
+void 
+detach_children_proc(struct proc *p)
+{
+	spinlock_acquire(&p->p_lock);
+		for (unsigned i=0; i<procarray_num(&p->p_children); i++) 
+		{
+			struct proc *pd = procarray_get(&p->p_children, i);
+			KASSERT(pd != NULL);
+			pd->p_pproc = NULL;
+		}
+	spinlock_release(&p->p_lock);
+	return;
+}
+
+
+bool 
+if_procchild(struct proc *p, pid_t child_pid)
+{
+	struct proc *childproc = proc_get_by_pid(child_pid);
+	KASSERT(childproc != NULL);
+
+	return (childproc->p_pproc == p);
+}
+
+struct proc * 
+proc_get_by_pid(pid_t pid)
+{
+	unsigned i;
+	struct proc *pd = NULL;
+	lock_acquire(ptable_lk);
+		for (i=0; i<procarray_num(&procs); ++i) 
+		{
+			pd = procarray_get(&procs, i);
+			if (pd->p_pid == pid)
+				break;
+		}
+	lock_release(ptable_lk);
+
+	return pd;
+}
+
+#endif
