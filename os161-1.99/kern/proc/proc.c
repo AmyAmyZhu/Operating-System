@@ -79,6 +79,7 @@ int num;
 int limit;
 
 void init_proctree(void){
+    DEBUG(DB_EXEC, "start init_proctree\n");
     num = 0;
     limit = 16;
     proctree = array_create();
@@ -87,11 +88,12 @@ void init_proctree(void){
     for(int i = 1; i < limit; i++){
         array_set(proctree, i, NULL);
     }
+    DEBUG(DB_EXEC, "finish init_proctree\n");
 }
 
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(p != NULL);
-    
+    DEBUG(DB_EXEC, "start add_proctree\n");
     int change = 0;
     if(num == limit-1){
         if(limit < 256) {
@@ -120,20 +122,23 @@ int add_proctree(struct proc *p, struct proc *new){
         set_parent_pid(p, get_curpid(new));
     }
     set_state(p, 1);
+    DEBUG(DB_EXEC, "finish add_proctree\n");
     return change;
 }
 
 void remove_proctree(struct proc *p){
     KASSERT(p != NULL);
+    DEBUG(DB_EXEC, "start remove_proctree\n");
     int pid = get_curpid(p);
     array_set(proctree, pid, NULL);
     num--;
     proc_destroy(p);
+    DEBUG(DB_EXEC, "finish remove_proctree\n");
 }
 
 void proc_exit(struct proc *p, int exitcode){
     KASSERT(p != NULL);
-    
+    DEBUG(DB_EXEC, "start proc_exit\n");
     set_state(p, 0);
     set_exitcode(p, _MKWAIT_EXIT(exitcode));
     int exit_pid = get_curpid(p);
@@ -155,9 +160,12 @@ void proc_exit(struct proc *p, int exitcode){
     } else {
         cv_signal(p->wait, proc_lock);
     }
+    DEBUG(DB_EXEC, "finish proc_exit\n");
+
 }
 
 struct proc* get_proctree(pid_t pid){
+    DEBUG(DB_EXEC, "start get_proctree\n");
     return array_get(proctree, pid);
 }
 
