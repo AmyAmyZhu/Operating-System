@@ -28,7 +28,6 @@
  */
 
 #include "opt-A2.h"
-#include <addrspace.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
@@ -37,6 +36,7 @@
 #include <thread.h>
 #include <current.h>
 #include <syscall.h>
+#include <addrspace.h>
 
 /*
  * System call dispatcher.
