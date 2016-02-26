@@ -110,10 +110,10 @@ sys_waitpid(pid_t pid,
     
     if(result){
         lock_release(proc_lock);
-        result result;
+        return result;
     }
     
-    while(get_state(children) == PPROCESS){
+    while(get_state(children) == 1){
         cv_wait(children->wait, proc_lock);
     }
     exitstatus = get_exitcode(children);
@@ -134,7 +134,7 @@ sys_waitpid(pid_t pid,
 int sys_fork(struct trapframe *tf, pid_t *retval){
     KASSERT(curproc != NULL);
     
-    struct proc *p = pro_create_runprogram("system_fork");
+    struct proc* p = proc_create_runprogram("system_fork");
     if(p == NULL){
         return ENOMEM;
     }
