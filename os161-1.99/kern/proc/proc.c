@@ -82,7 +82,6 @@ int add_proctree(struct proc *p, struct proc *new){
     KASSERT(p != NULL);
     
     int change = 0;
-    int test = 0;
     if(num == limit-1){
         if(limit < 256) {
             limit = limit * 2;
