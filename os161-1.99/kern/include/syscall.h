@@ -33,7 +33,7 @@
 //#include "opt-A2.h"
 
 struct trapframe; /* from <machine/trapframe.h> */
-struct trapframe *tt;
+
 /*
  * The system call dispatcher.
  */
@@ -70,7 +70,7 @@ int sys_waitpid(pid_t pid, userptr_t status, int options, pid_t *retval);
 
 //#if OPT_A2
 // code you created or modified for ASST2 goes here
-int sys_fork(struct tapframe *tf, pid_t *retval);
+int sys_fork(struct trapframe *tf, pid_t *retval);
 //#endif // OPT_A2
 
 #endif /* _SYSCALL_H_ */
