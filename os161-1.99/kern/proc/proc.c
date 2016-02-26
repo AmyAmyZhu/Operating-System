@@ -134,13 +134,13 @@ void proc_exit(struct proc *p, int exitcode){
             int new_state = get_state(new);
             if(new_state == 1){
                 set_parent_pid(new, -1);
-            } else if(new_state = 0){
+            } else if(new_state == 0){
                 remove_proctree(new);
             }
         }
     }
     
-    if(get_parent_pid(p) == PNOPID){
+    if(get_parent_pid(p) == -1){
         remove_proctree(p);
     } else {
         cv_signal(p->wait, proc_lock);
