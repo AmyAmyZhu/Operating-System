@@ -7,7 +7,7 @@
 #include <syscall.h>
 #include <current.h>
 #include <proc.h>
-//#include <synch.h>
+#include <synch.h>
 //#include <proctree.h>
 #include <thread.h>
 #include <addrspace.h>
