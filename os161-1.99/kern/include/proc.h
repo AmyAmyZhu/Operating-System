@@ -50,7 +50,21 @@ struct semaphore;
 #define PEXIT 0;
 #define PPORCESS 1;
 #define PNOPID -1;
+
+
+DECLARRAY(proc);
+DEFARRAY(proc, INLINE);
+
+struct array *proctree;
+struct lock *proc_lock;
+
+int add_proctree(struct proc *p, struct proc *new);
+void remove_proctree(struct proc *p);
+struct proc* get_proctree(pid_t pid);
+void proc_exit(struct proc *p, int exitcode);
 //#endif //OPT_A2
+
+
 
 /*
  * Process structure.
@@ -123,6 +137,5 @@ void set_exitcode(struct proc *proc, int exitcode);
 void set_curpid(struct proc *proc, int pid);
 void set_parent_pid(struct proc *proc, int pid);
 //#endif // OPT_A2
-
 
 #endif /* _PROC_H_ */
