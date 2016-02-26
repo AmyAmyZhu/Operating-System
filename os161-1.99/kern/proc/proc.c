@@ -91,14 +91,14 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
-    for(int i = 1; i < limit; i++){
+    /*for(int i = 1; i < limit; i++){
         if(array_get(proctree, i) == NULL){
             set_curpid(p, i);
             array_set(proctree, i, p);
             break;
         }
     }
-    
+    */
     if(get_curpid(p) == -1){
         return -1;
     }
@@ -241,13 +241,13 @@ proc_create(const char *name)
     int err = 0;
     
     if(kproc == NULL){
-        err = 0; //add_proctree(proc, NULL);
+        err = add_proctree(proc, NULL);
     } else {
         lock_acquire(proc_lock);
         if(curproc == kproc){
-            err = 0;// add_proctree(proc, NULL);
+            err = add_proctree(proc, NULL);
         } else {
-            err = 0;//add_proctree(proc, curproc);
+            err = add_proctree(proc, curproc);
         }
         lock_release(proc_lock);
     }
