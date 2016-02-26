@@ -46,6 +46,11 @@ struct vnode;
 struct semaphore;
 #endif // UW
 
+#if OPT_A2
+struct array *proctree;
+struct lock *proc_lock;
+#endif // OPT_A2
+
 /*
  * Process structure.
  */

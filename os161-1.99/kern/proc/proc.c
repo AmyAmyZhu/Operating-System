@@ -77,9 +77,6 @@ struct semaphore *no_proc_sem;
 int num = 0;
 int arraysize = 16;
 
-struct array *proctree;
-struct lock *proc_lock;
-
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
