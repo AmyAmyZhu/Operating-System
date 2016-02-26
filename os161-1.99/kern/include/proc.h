@@ -178,5 +178,3 @@ void setPPID(struct proc *proc, int newPPID);
 
 // Sets the process' state
 void setState(struct proc *proc, int newState);
-
-#endif /* _PROC_H_ */
