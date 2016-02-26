@@ -47,9 +47,9 @@ struct semaphore;
 #endif // UW
 
 //#if OPT_A2
-//#define PEXIT 0;
-//#define PPORCESS 1;
-//#define PNOPID -1;
+#define PEXIT 0;
+#define PPORCESS 1;
+#define PNOPID -1;
 
 
 //DECLARRAY(proc);

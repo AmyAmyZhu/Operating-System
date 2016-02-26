@@ -126,7 +126,7 @@ int add_proctree(struct proc *p, struct proc *new){
     return change;
 }
 
-void remove_proctree(struct proc *p){
+/*void remove_proctree(struct proc *p){
     KASSERT(p != NULL);
     int pid = get_curpid(p);
     array_set(proctree, pid, NULL);
@@ -136,6 +136,18 @@ void remove_proctree(struct proc *p){
     proc_destroy(p);
     DEBUG(DB_EXEC, "finish remove_proctree\n");
     //kprintf("Here!!leave proc destroy\n");
+}*/
+
+void remove_proctree(struct proc *proc_removed) {
+    KASSERT(proc_removed != NULL);
+    
+    int pid = get_curpid(proc_removed);
+    array_set(proctree, pid, NULL);
+    num--;
+    
+    /* if this is the last user process in the system, proc_destroy()
+     will wake up the kernel menu thread */
+    proc_destroy(proc_removed);
 }
 
 void proc_exit(struct proc *p, int exitcode){
@@ -161,11 +173,11 @@ void proc_exit(struct proc *p, int exitcode){
     if(get_parent_pid(p) == -1){
         //kprintf("Here!!come remove proctree\n");
         DEBUG(DB_EXEC, "start proc_exit\n");
-        remove_proctree(p);
+        //remove_proctree(p);
         DEBUG(DB_EXEC, "end proc_exit\n");
         //kprintf("Here!!leave remove proctree\n");
     } else {
-        //cv_signal(p->wait, proc_lock);
+        cv_signal(p->wait, proc_lock);
     }
     //kprintf("Here!!leave remove proctree!!\n");
 }
@@ -362,7 +374,6 @@ proc_destroy(struct proc *proc)
     V(proc_count_mutex);
 #endif // UW
     
-    cv_destroy(proc->wait);
     
 }
 
