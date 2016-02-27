@@ -93,30 +93,30 @@ int add_proctree(struct proc *p, struct proc *new){
     
     for(int i = 1; i < arraysize; i++){
         if(array_get(proctree, i) == NULL){
-            set_curpid(p, i);
+            p->curpid = i;
             array_set(proctree, i, p);
             break;
         }
     }
     
-    if(get_curpid(p) == -1){
+    if(p->curpid == -1){
         change = -1;
     }
     //DEBUG(DB_EXEC, "start add_proctree\n");
     num++;
     if(new == NULL){
-        set_parent_pid(p, -1);
+        p->parent_pid = -1;
     } else {
-        set_parent_pid(p, get_curpid(new));
+        p->parent_pid = new->curpid;
     }
-    set_state(p, 1);
+    p->state = 1;
     //DEBUG(DB_EXEC, "finish add_proctree\n");
     return change;
 }
 
 void remove_proctree(struct proc *p){
     KASSERT(p != NULL);
-    int pid = get_curpid(p);
+    int pid = p->curpid;
     array_set(proctree, pid, NULL);
     num--;
     //kprintf("Here!!come proc destroy\n");
@@ -130,23 +130,23 @@ void proc_exit(struct proc *p, int exitcode){
     KASSERT(p != NULL);
     KASSERT(p->curpid > 0);
     
-    set_state(p, 0);
-    set_exitcode(p, _MKWAIT_EXIT(exitcode));
-    int exit_pid = get_curpid(p);
+    p->state = 0;
+    p->exitcode = _MKWAIT_EXIT(exitcode);
+    int exit_pid = p->curpid;
     
     for(int i = 1; i < arraysize; i++) {
         struct proc *new = array_get(proctree, i);
-        if(new != NULL && get_parent_pid(new) == exit_pid){
-            int new_state = get_state(new);
+        if(new != NULL && new->parent_pid == exit_pid){
+            int new_state = new->state;
             if(new_state == 1){
-                set_parent_pid(new, -1);
+                new->parent_pid = -1;
             } else if(new_state == 0){
                 remove_proctree(new);
             }
         }
     }
     
-    if(get_parent_pid(p) == -1){
+    if(p->parent_pid == -1){
         //kprintf("Here!!come remove proctree\n");
         DEBUG(DB_EXEC, "start proc_exit\n");
         remove_proctree(p);
@@ -156,48 +156,6 @@ void proc_exit(struct proc *p, int exitcode){
         cv_signal(p->wait, proc_lock);
     }
     //kprintf("Here!!leave remove proctree!!\n");
-}
-
-int get_state(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->state;
-}
-
-int get_exitcode(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->exitcode;
-}
-
-int get_curpid(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->curpid;
-}
-
-int get_parent_pid(struct proc *proc){
-    KASSERT(proc != NULL);
-    return proc->parent_pid;
-}
-
-void set_state(struct proc *proc, int state){
-    KASSERT(proc != NULL);
-    //KASSERT((state == PEXIT) || (state == PPORCESS));
-    proc->state = state;
-}
-
-void set_exitcode(struct proc *proc, int exitcode){
-    KASSERT(proc != NULL);
-    proc->exitcode = exitcode;
-}
-
-void set_curpid(struct proc *proc, int pid){
-    KASSERT(proc != NULL);
-    proc->curpid = pid;
-}
-
-void set_parent_pid(struct proc *proc, int pid){
-    KASSERT(proc != NULL);
-    //KASSERT((pid == PNOPID) || (pid > 0));
-    proc->parent_pid = pid;
 }
 
 #endif // OPT_A2
@@ -243,7 +201,7 @@ proc_create(const char *name)
 #endif // UW
 
 #if OPT_A2
-    set_curpid(proc, -1);
+    proc->curpid = -1;
     int err = 0;
     
     if(kproc == NULL){

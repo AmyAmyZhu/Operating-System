@@ -117,16 +117,6 @@ struct addrspace *curproc_setas(struct addrspace *);
 int add_proctree(struct proc *p, struct proc *new);
 void remove_proctree(struct proc *p);
 void proc_exit(struct proc *p, int exitcode);
-
-int get_state(struct proc *proc);
-int get_exitcode(struct proc *proc);
-int get_curpid(struct proc *proc);
-int get_parent_pid(struct proc *proc);
-
-void set_state(struct proc *proc, int state);
-void set_exitcode(struct proc *proc, int exitcode);
-void set_curpid(struct proc *proc, int pid);
-void set_parent_pid(struct proc *proc, int pid);
 #endif // OPT_A2
 
 #endif /* _PROC_H_ */

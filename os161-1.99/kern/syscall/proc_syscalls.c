@@ -56,7 +56,7 @@ sys_getpid(pid_t *retval)
   struct proc *p = curproc;
 
   // return the current process' PID.
-  *retval = get_curpid(p);
+  *retval = p->curpid;
   return(0);
 }
 
@@ -82,7 +82,7 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
       result = ESRCH;
     }
     // Error if requested PID was not a child of parent process
-    else if (get_parent_pid(child) != get_curpid(parent)) {
+    else if (child->parent_pid != parent->curpid) {
       result = ECHILD;
     }
 
@@ -96,14 +96,14 @@ sys_waitpid(pid_t pid, // pid that you want to wait for
     // If child is still running, have parent wait for child to exit
     // Need a while loop, Mesa semantics, because a different child could wake him up,
     // Even though the one we're waiting on here is still running
-    while (get_state(child) == 1) {
+    while (child->state == 1) {
       cv_wait(child->wait, proc_lock);
     }
 
     // We are now awoken because we waited for the child to exit,
     // or the child had already exited. Either way, we can now collect
     // their exit code. We will remove them from proctable when we exit.
-    exitstatus = get_exitcode(child);
+    exitstatus = child->exitcode;
 
   lock_release(proc_lock);
 
@@ -134,7 +134,7 @@ int sys_fork(struct trapframe* tf, pid_t *retval) {
   // the parent needs to return the retval of the child
   // synchronization is not required since the only one interested
   // in the child process is the parent and we are the parent
-  *retval = get_curpid(proc_created);
+  *retval = proc_created->curpid;
 
   // allocate duplicate trapframe on kernel heap for child process
   struct trapframe* dupTrap = kmalloc(sizeof(struct trapframe));
