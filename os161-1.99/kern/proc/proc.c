@@ -75,20 +75,17 @@ struct semaphore *no_proc_sem;
 #if OPT_A2
 
 int num = 0;
-int arraysize = 16;
+int arraysize = 32;
 
+// initillization the proctree, add new to p
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
     KASSERT(p != NULL);
     //DEBUG(DB_EXEC, "start add_proctree\n");
-    int change = 0;
-    if(num == arraysize-1){
-        if(arraysize < 256) {
-            arraysize = arraysize * 2;
-            array_setsize(proctree, arraysize);
-        } else {
-            change = -1;
-        }
+    int change = 0; // record error
+    if(num+1 == arraysize){ // if the array overflow, multiple the size by 2
+        arraysize = arraysize * 2;
+        array_setsize(proctree, arraysize);
     }
     
     for(int i = 1; i < arraysize; i++){
@@ -99,38 +96,28 @@ int add_proctree(struct proc *p, struct proc *new){
         }
     }
     
+    // error pid for p
     if(p->curpid == -1){
         change = -1;
     }
+    // add no parent new for p
     //DEBUG(DB_EXEC, "start add_proctree\n");
-    num++;
     if(new == NULL){
         p->parent_pid = -1;
     } else {
         p->parent_pid = new->curpid;
     }
     p->state = 1;
+    num++;
     //DEBUG(DB_EXEC, "finish add_proctree\n");
     return change;
-}
-
-void remove_proctree(struct proc *p){
-    KASSERT(p != NULL);
-    int pid = p->curpid;
-    array_set(proctree, pid, NULL);
-    num--;
-    //kprintf("Here!!come proc destroy\n");
-    DEBUG(DB_EXEC, "start remove_proctree\n");
-    proc_destroy(p);
-    DEBUG(DB_EXEC, "finish remove_proctree\n");
-    //kprintf("Here!!leave proc destroy\n");
 }
 
 void proc_exit(struct proc *p, int exitcode){
     KASSERT(p != NULL);
     KASSERT(p->curpid > 0);
     
-    p->state = 0;
+    p->state = 0; // exit code
     p->exitcode = _MKWAIT_EXIT(exitcode);
     int exit_pid = p->curpid;
     
@@ -142,14 +129,26 @@ void proc_exit(struct proc *p, int exitcode){
                 new->parent_pid = -1;
             } else if(new_state == 0){
                 remove_proctree(new);
+                KASSERT(new != NULL);
+                int remove_pid = new->curpid;
+                array_set(proctree, remove_pid ,NULL);
+                proc_destroy(new);
+                num--;
             }
         }
     }
     
+    // no parent, just remove children p
     if(p->parent_pid == -1){
         //kprintf("Here!!come remove proctree\n");
         DEBUG(DB_EXEC, "start proc_exit\n");
-        remove_proctree(p);
+        KASSERT(p != NULL);
+        int remove_pid = p->curpid;
+        array_set(proctree, remove_pid, NULL);
+        //kprintf("Here!!come proc destroy\n");
+        proc_destroy(p);
+        num--;
+        //kprintf("Here!!leave proc destroy\n");
         DEBUG(DB_EXEC, "end proc_exit\n");
         //kprintf("Here!!leave remove proctree\n");
     } else {
