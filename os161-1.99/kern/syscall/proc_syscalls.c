@@ -44,13 +44,13 @@ void sys__exit(int exitcode) {
     /* detach this thread from its process */
     /* note: curproc cannot be used after this call */
     proc_remthread(curthread);
-    //#if OPT_A2
+    #if OPT_A2
     DEBUG(DB_EXEC, "start sys_exit\n");
     lock_acquire(proc_lock);
     proc_exit(p, exitcode);
     lock_release(proc_lock);
     DEBUG(DB_EXEC, "finish sys_exit\n");
-    //#endif // OPT_A2
+    #endif // OPT_A2
     /* if this is the last user process in the system, proc_destroy()
      will wake up the kernel menu thread */
     //proc_destroy(p);
@@ -67,13 +67,13 @@ sys_getpid(pid_t *retval)
 {
     /* for now, this is just a stub that always returns a PID of 1 */
     /* you need to fix this to make it work properly */
-    //#if OPT_A2
+    #if OPT_A2
     DEBUG(DB_EXEC, "start sys_getpid\n");
     KASSERT(curproc != NULL);
     struct proc *new = curproc;
     *retval = new->curpid;
     DEBUG(DB_EXEC, "finish sys_getpid\n");
-    //#endif // OPT_A2
+    #endif // OPT_A2
     return(0);
 }
 
@@ -100,7 +100,7 @@ sys_waitpid(pid_t pid,
         return(EINVAL);
     }
     /* for now, just pretend the exitstatus is 0 */
-    //#if OPT_A2
+    #if OPT_A2
     DEBUG(DB_EXEC, "start sys_waitpid\n");
     lock_acquire(proc_lock);
     struct proc *parent = curproc;
@@ -123,7 +123,7 @@ sys_waitpid(pid_t pid,
     exitstatus = children->exitcode;
     lock_release(proc_lock);
     DEBUG(DB_EXEC, "finish sys_waitpid\n");
-    //#endif // OPT_A2
+    #endif // OPT_A2
     
     result = copyout((void *)&exitstatus,status,sizeof(int));
     if (result) {
