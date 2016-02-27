@@ -196,7 +196,8 @@ proc_create(const char *name)
 
 #if OPT_A2
     int err = 0;
-    
+    proc->curpid = -1;
+
     if(kproc == NULL){
         err = add_proctree(proc, NULL);
     } else {
@@ -208,7 +209,6 @@ proc_create(const char *name)
         }
         lock_release(proc_lock);
     }
-    proc->curpid = -1;
     if(err){
         return NULL;
     }
