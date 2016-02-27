@@ -83,8 +83,13 @@ sys_waitpid(pid_t pid,
             int options,
             pid_t *retval)
 {
+#if OPT_A2
     int exitstatus = 0;
     int result = 0;
+#else
+    int exitstatus;
+    int result;
+#endif // OPT_A2
     
     /* this is just a stub implementation that always reports an
      exit status of 0, regardless of the actual exit status of

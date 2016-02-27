@@ -84,7 +84,7 @@ int add_proctree(struct proc *p, struct proc *new){
     //DEBUG(DB_EXEC, "start add_proctree\n");
     int change = 0; // record error
     if(count+1 == arraysize){ // if the array overflow, multiple the size by 2
-        arraysize = arraysize * 2;
+        arraysize *= arraysize;
         array_setsize(proctree, arraysize);
     }
     
@@ -129,8 +129,7 @@ void proc_exit(struct proc *p, int exitcode){
                 new->parent_pid = -1;
             } else if(new_state == 0){
                 KASSERT(new != NULL);
-                int remove_pid = new->curpid;
-                array_set(proctree, remove_pid ,NULL);
+                array_set(proctree, new->curpid,NULL);
                 proc_destroy(new);
                 count--;
             }
@@ -142,8 +141,7 @@ void proc_exit(struct proc *p, int exitcode){
         //kprintf("Here!!come remove proctree\n");
         DEBUG(DB_EXEC, "start proc_exit\n");
         KASSERT(p != NULL);
-        int remove_pid = p->curpid;
-        array_set(proctree, remove_pid, NULL);
+        array_set(proctree, p->curpid, NULL);
         //kprintf("Here!!come proc destroy\n");
         proc_destroy(p);
         count--;
