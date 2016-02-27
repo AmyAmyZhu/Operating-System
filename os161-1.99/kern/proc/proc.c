@@ -74,7 +74,7 @@ struct semaphore *no_proc_sem;
 
 #if OPT_A2
 
-int num = 0;
+int count = 0;
 int arraysize = 32;
 
 // initillization the proctree, add new to p
@@ -83,7 +83,7 @@ int add_proctree(struct proc *p, struct proc *new){
     KASSERT(p != NULL);
     //DEBUG(DB_EXEC, "start add_proctree\n");
     int change = 0; // record error
-    if(num+1 == arraysize){ // if the array overflow, multiple the size by 2
+    if(count+1 == arraysize){ // if the array overflow, multiple the size by 2
         arraysize = arraysize * 2;
         array_setsize(proctree, arraysize);
     }
@@ -108,7 +108,7 @@ int add_proctree(struct proc *p, struct proc *new){
         p->parent_pid = new->curpid;
     }
     p->state = 1;
-    num++;
+    count++;
     //DEBUG(DB_EXEC, "finish add_proctree\n");
     return change;
 }
@@ -132,7 +132,7 @@ void proc_exit(struct proc *p, int exitcode){
                 int remove_pid = new->curpid;
                 array_set(proctree, remove_pid ,NULL);
                 proc_destroy(new);
-                num--;
+                count--;
             }
         }
     }
@@ -146,7 +146,7 @@ void proc_exit(struct proc *p, int exitcode){
         array_set(proctree, remove_pid, NULL);
         //kprintf("Here!!come proc destroy\n");
         proc_destroy(p);
-        num--;
+        count--;
         //kprintf("Here!!leave proc destroy\n");
         DEBUG(DB_EXEC, "end proc_exit\n");
         //kprintf("Here!!leave remove proctree\n");

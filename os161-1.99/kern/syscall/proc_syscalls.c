@@ -69,8 +69,7 @@ sys_getpid(pid_t *retval)
     #if OPT_A2
     DEBUG(DB_EXEC, "start sys_getpid\n");
     KASSERT(curproc != NULL);
-    struct proc *new = curproc;
-    *retval = new->curpid;
+    *retval = curproc->curpid;
     DEBUG(DB_EXEC, "finish sys_getpid\n");
     #endif // OPT_A2
     return(0);
@@ -132,36 +131,48 @@ sys_waitpid(pid_t pid,
     return(0);
 }
 
+#if OPT_A2
 int sys_fork(struct trapframe *tf, pid_t *retval){
     KASSERT(curproc != NULL);
     DEBUG(DB_EXEC, "start sys_fork\n");
+    kprintf("here!!");
     struct proc* p = proc_create_runprogram("system_fork");
     if(p == NULL){
         return ENOMEM;
     }
+    struct addrspace *c_addr = kmalloc(sizeof(struct addrspace));
+    if(c_addr == NULL){
+        proc_destroy(p);
+        return ENOMEM;
+    }
     struct trapframe *c_trap = kmalloc(sizeof(struct trapframe));
     if(c_trap == NULL){
+        kfree(c_trap);
+        as_destroy(c_addr);
+        proc_destroy(p);
         return ENOMEM;
     }
     
-    *retval = p->curpid;
-    memcpy(c_trap, tf, sizeof(struct trapframe));
-    
-    struct addrspace *c_addr;
     int result = as_copy(curproc_getas(), &c_addr);
     
     if(result){
+        kfree(c_addr);
+        proc_destroy(p);
         return result;
     }
     
     p->p_addrspace = c_addr;
+    memcpy(c_trap, tf, sizeof(struct trapframe));
     
     result = thread_fork("check_fork", p, enter_forked_process, c_trap, 1);
     if(result){
         kfree(c_trap);
         return result;
     }
+    *retval = p->curpid;
+    kprintf("here!!");
     DEBUG(DB_EXEC, "finish sys_fork\n");
     return 0;
 }
+#endif // OPT_A2
 
