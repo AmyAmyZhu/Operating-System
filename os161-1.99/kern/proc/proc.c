@@ -128,7 +128,6 @@ void proc_exit(struct proc *p, int exitcode){
             if(new_state == 1){
                 new->parent_pid = -1;
             } else if(new_state == 0){
-                remove_proctree(new);
                 KASSERT(new != NULL);
                 int remove_pid = new->curpid;
                 array_set(proctree, remove_pid ,NULL);

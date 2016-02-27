@@ -71,7 +71,7 @@ sys_getpid(pid_t *retval)
     DEBUG(DB_EXEC, "start sys_getpid\n");
     KASSERT(curproc != NULL);
     struct proc *new = curproc;
-    *retval = get_curpid(new);
+    *retval = new->curpid;
     DEBUG(DB_EXEC, "finish sys_getpid\n");
     //#endif // OPT_A2
     return(0);
@@ -104,11 +104,11 @@ sys_waitpid(pid_t pid,
     DEBUG(DB_EXEC, "start sys_waitpid\n");
     lock_acquire(proc_lock);
     struct proc *parent = curproc;
-    struct proc *children = get_proctree(pid);
+    struct proc *children = array_get(proctree, pid);
     
     if(children == NULL){
         result = ESRCH;
-    } else if(get_parent_pid(children) != get_curpid(parent)){
+    } else if(children->parent_pid != parent->curpid){
         result = ECHILD;
     }
     
@@ -117,10 +117,10 @@ sys_waitpid(pid_t pid,
         return result;
     }
     
-    while(get_state(children) == 1){
+    while(children->state == 1){
         cv_wait(children->wait, proc_lock);
     }
-    exitstatus = get_exitcode(children);
+    exitstatus = children->exitcode;
     lock_release(proc_lock);
     DEBUG(DB_EXEC, "finish sys_waitpid\n");
     //#endif // OPT_A2
@@ -145,7 +145,7 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
         return ENOMEM;
     }
     
-    *retval = get_curpid(p);
+    *retval = p->curpid;
     memcpy(c_trap, tf, sizeof(struct trapframe));
     
     struct addrspace *c_addr;
