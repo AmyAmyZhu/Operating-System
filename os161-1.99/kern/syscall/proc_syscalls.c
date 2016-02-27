@@ -83,8 +83,8 @@ sys_waitpid(pid_t pid,
             int options,
             pid_t *retval)
 {
-    int exitstatus;
-    int result;
+    int exitstatus = 0;
+    int result = 0;
     
     /* this is just a stub implementation that always reports an
      exit status of 0, regardless of the actual exit status of
