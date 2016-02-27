@@ -73,6 +73,8 @@ struct semaphore *no_proc_sem;
 #endif  // UW
 
 #if OPT_A2
+int count = 0;
+int arraysize = 32;
 // initillization the proctree, add new to p
 int add_proctree(struct proc *p, struct proc *new){
     KASSERT(proc_lock != NULL);
