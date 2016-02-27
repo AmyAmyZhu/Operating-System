@@ -49,6 +49,9 @@ struct semaphore;
 #if OPT_A2
 struct array *proctree;
 struct lock *proc_lock;
+
+int count = 0;
+int arraysize = 32;
 #endif // OPT_A2
 
 /*
