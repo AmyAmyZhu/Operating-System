@@ -51,8 +51,11 @@
  *
  * Calls vfs_open on progname and thus may destroy it.
  */
-int
-runprogram(char *progname)
+#if OPT_A2
+int runprogram(char *progname, int argc, char **argv)
+#else
+int runprogram(char *progname)
+#endif // OPT_A2b
 {
 	struct addrspace *as;
 	struct vnode *v;
@@ -98,8 +101,36 @@ runprogram(char *progname)
 	}
 
 	/* Warp to user mode. */
+#if OPT_A2
+    char** addr_ptr = kmalloc((argc+1)*sizeof(char*));
+    for(int i = argc-1; i >= 0; --i){
+        char* arg_str = argv[i];
+        stackptr -= length;
+        result = copyout(arg_str, (userptr_t)stackptr, length);
+        if(result){
+            return result;
+        }
+        addr_ptr[i] = (char*) stackptr;
+    }
+    addr_ptr[argc] = NULL;
+    offset = stackptr%4;
+    stackptr -= stackptr%4;
+    bzero((void*)stackptr, offset);
+    offset = (argc+1)*sizeof(char*);
+    stackptr -= offset;
+    result = copyout(addr_ptr, (userptr_t)stackptr, offset);
+    if(result){
+        return result;
+    }
+    argvptr = stackptr;
+    offset - stackptr%8;
+    bzero((void*)stackptr, offset);
+    kfree(addr_ptr);
+    enter_new_process(argc, (userptr_t)argvptr, stackptr, entrypoint);
+#else
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
 			  stackptr, entrypoint);
+#endif // OPT_A2b
 	
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
