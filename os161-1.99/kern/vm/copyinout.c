@@ -319,3 +319,20 @@ copyoutstr(const char *src, userptr_t userdest, size_t len, size_t *actual)
 	curthread->t_machdep.tm_badfaultfunc = NULL;
 	return result;
 }
+
+#if OPT_A2
+int getlen(char* src) {
+    int len = strlen(src);
+    return (len / 4 + 1) * 4;
+}
+
+void cpy_stack(char* des, char* scr) {
+    strcpy(des, scr);
+    int len = strlen(scr);
+    int c = getlen(scr);
+    for(int i = len; i < c; i++) {
+        des[i] = '\0';
+    }
+}
+
+#endif  //  OPT_A2

@@ -180,145 +180,107 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 #endif // OPT_A2a
 
 #if OPT_A2
-int sys_execv(const_userptr_t path, userptr_t argv){
-    int argc, result, i, offset;
-    size_t path_len;
-    struct addrspace *old_as;
-    struct vnode *v;
-    vaddr_t entrypoint, stackptr, argvptr;
+int sys_execv(char* program, char** args) {
+    int result;
     
-    char *kpath = kmalloc(PATH_MAX);
-    if(kpath == NULL) return ENOMEM;
-    result = copyinstr(path, kpath, PATH_MAX, &path_len);
-    if(result){
-        return result;
-    }
-    if(path_len == 1){
-        return ENOENT;
+    char name[strlen(program) + 1];
+    result = copyin((userptr_t) program,
+                    name, (strlen(program) + 1) * sizeof(char));
+    //kprintf("%s", name);
+    
+    int len_arg = 0;
+    while(args[len_arg] != NULL) {
+        len_arg++;
     }
     
-    char** argv_ptr = (char**) argv;
-    for(argc = 0; argv_ptr[argc] != NULL; ++argc);
-    if(argc > ARG_MAX) return E2BIG;
-    userptr_t k_ptr = kmalloc(sizeof(userptr_t));
-    if (k_ptr == NULL)
-        return ENOMEM;
-    
-    int arg_size = (argc+1) * sizeof(char*); // don't forget + 1
-    char** kargv = kmalloc(arg_size);
-    if (kargv == NULL)
-        return ENOMEM;
-    
-    for (i = 0; i<argc; ++i){
-        result = copyin((const_userptr_t)&(argv_ptr[i]), &k_ptr, sizeof(userptr_t));  //copy addr, so &(argv_ptr[i])
-        if (result){
-            return ENOMEM;
-        }
-        kargv[i] = kmalloc(PATH_MAX);
-        result = copyinstr((const_userptr_t)k_ptr, kargv[i], PATH_MAX, &path_len);
-        if (result) {
-            return result;
-        }
+    int length_every_arg[len_arg];
+    for(int i = 0; i < len_arg; i++) {
+        length_every_arg[i] = strlen(args[i]);
     }
     
-    // argument array should end with NULL.
-    kargv[argc] = NULL;
+    char* kern_args[len_arg];
+    for(int i = 0; i < len_arg; i++) {
+        kern_args[i] = kmalloc(sizeof(char) * length_every_arg[i] + 1);
+        copyin((const_userptr_t)args[i], kern_args[i],
+               (length_every_arg[i] + 1) * sizeof(char));
+    }
+    /*
+     for(int i = 0; i < len_arg; i++) {
+     kprintf("{ _%d__%p__%p_",strlen(kern_args[i]), kern_args[i],args[i]);
+     kprintf("%s", kern_args[i]);
+     kprintf("}\n");
+     }
+     */
+    /////////////////////////////////////////////////////
+    // this is "copied" from runprogram
+    struct addrspace* old_as;
+    struct vnode* v;
+    vaddr_t entrypoint, stackptr;
     
-    
-    /* Open the file. */
-    char *fname_temp;
-    fname_temp = kstrdup(kpath);
-    result = vfs_open(fname_temp, O_RDONLY, 0, &v);             // ????
-    kfree(fname_temp);
-    if (result) {
+    result = vfs_open(program, O_RDONLY, 0, &v);
+    if(result) {
         return result;
     }
     
-    // Replace old address space &
-    // Create a new address space.
+    as_deactivate();
+    old_as = curproc_setas(NULL);
+    as_destroy(old_as);
     
-    KASSERT(curproc_getas() != NULL);
-    old_as = curproc_getas();
-    spinlock_acquire(&curproc->p_lock);
-    curproc->p_addrspace = as_create();
-    spinlock_release(&curproc->p_lock);
-    
-    if (curproc->p_addrspace ==NULL) {
+    struct addrspace* new_as = as_create();
+    if(new_as == NULL) {
         vfs_close(v);
         return ENOMEM;
     }
-    
-    /* activate new as. */
+    curproc_setas(new_as);
     as_activate();
     
-    /* Load the executable. */
     result = load_elf(v, &entrypoint);
-    if (result) {
-        /* p_addrspace will go away when curproc is destroyed */
+    if(result) {
         vfs_close(v);
         return result;
     }
     
-    /* Done with the file now. */
     vfs_close(v);
     
-    /* Define the user stack in the address space */
-    // stackptr is the very top of the user address space
-    result = as_define_stack(curproc->p_addrspace, &stackptr);
-    if (result) {
-        /* p_addrspace will go away when curproc is destroyed */
+    result = as_define_stack(new_as, &stackptr);
+    if(result) {
         return result;
     }
-    
-    // copy argv onto the stack of user address space
-    char** addr_ptr = kmalloc((argc+1)*sizeof(char*)); // sizeof(char*) = 4 bytes
-    if (addr_ptr == NULL)
-        return ENOMEM;
-    
-    for (i=argc-1; i>=0; --i){
-        char* arg_str = kargv[i];
-        int length = strlen(arg_str)+1;
-        stackptr-=length;
-        result = copyout(arg_str, (userptr_t)stackptr, length);     // assume it automatically fill 0
-        if (result) {
-            /* p_addrspace will go away when curproc is destroyed */
-            return result;
-        }
-        addr_ptr[i] = (char*)stackptr;
+    //////////////////////////////////////////////////////////
+    // kern_args
+    // the addr of stackptr is 0x8000 0000
+    vaddr_t argv = stackptr;
+    for(int i = 0; i < len_arg + 1; i++) {
+        argv = argv - 4;
     }
-    addr_ptr[argc] = NULL;
     
-    offset = stackptr%4;
-    stackptr-=stackptr%4;
-    bzero((void *)stackptr, offset);
+    vaddr_t start = argv;
+    vaddr_t temp = argv;
     
-    offset = (argc+1)*sizeof(char*);
-    stackptr-=offset;
-    result = copyout(addr_ptr, (userptr_t)stackptr, offset);     // assume it automatically fill 0
-    if (result) {
-        /* p_addrspace will go away when curproc is destroyed */
-        return result;
+    copyout(NULL, (userptr_t)(stackptr - 4), 4);
+    //starts from 1, because argv[0] is reserved for the program name
+    for(int i = 0; i < len_arg; i++) {
+        //question? why do I have to add 2
+        int m = sizeof(char) * (strlen(kern_args[i]) + 1);
+        //	kprintf("the value of m -> %d\n", m);
+        argv = argv - m;
+        copyout(kern_args[i], (userptr_t)argv, m);
+        //	kprintf("***(%d)%s(%p)\n***", m, (char* )argv, (void *) argv);
+        copyout(&argv, (userptr_t)temp, sizeof(char* ));
+        temp = temp + 4;
     }
-    argvptr = stackptr;
     
-    offset = stackptr%8;
-    stackptr-=stackptr%8;
-    bzero((void *)stackptr, offset);
+    for(int i = 0; i < len_arg; i++) {
+        kfree(kern_args[i]);
+    }
     
-    // clean variables
-    as_destroy(old_as);
-    kfree(kargv);
-    kfree(kpath);
-    kfree(addr_ptr);
-    // kfree(k_ptr);
-    // kfree(argv_ptr);
+    while(argv % 8 != 0) {argv--;}
     
-    /* Warp to user mode. */
-    enter_new_process(argc /*argc*/, (userptr_t)argvptr /*userspace addr of argv*/,
-                      stackptr, entrypoint);
+    enter_new_process(len_arg, (userptr_t)start, (vaddr_t) argv, entrypoint);
     
-    /* enter_new_process does not return. */
-    panic("enter_new_process returned\n");
+    //	enter_new_process(0, NULL, stackptr, entrypoint);
+    panic("enter_new_process returned");
     return EINVAL;
 }
+
 #endif // OPT_A2b

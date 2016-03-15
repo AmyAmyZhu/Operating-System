@@ -51,17 +51,30 @@
  *
  * Calls vfs_open on progname and thus may destroy it.
  */
+int
 #if OPT_A2
-int runprogram(char *progname, int argc, char **argv)
+runprogram(char* progname, char** args, int nargs)
 #else
-int runprogram(char *progname)
+runprogram(char *progname)
 #endif // OPT_A2b
 {
 	struct addrspace *as;
 	struct vnode *v;
 	vaddr_t entrypoint, stackptr;
 	int result;
-
+    
+#if OPT_A2
+    int len_arg = nargs;
+    
+    char* kern_args[len_arg];
+    for(int i = 0; i < len_arg; i++) {
+        kern_args[i] = kmalloc(sizeof(char) * (strlen(args[i]) + 1));
+        //copyin((userptr_t)args[i], kern_args[i],
+        //		(strlen(args[i]) + 1) * sizeof(char));
+        strcpy(kern_args[i], args[i]);
+    }
+#endif // OPT_A2b
+    
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
 	if (result) {
@@ -101,35 +114,30 @@ int runprogram(char *progname)
 	}
 
 	/* Warp to user mode. */
+    
 #if OPT_A2
-    char** addr_ptr = kmalloc((argc+1)*sizeof(char*));
-    for(int i = argc-1; i >= 0; --i){
-        char* arg_str = argv[i];
-        stackptr -= length;
-        result = copyout(arg_str, (userptr_t)stackptr, length);
-        if(result){
-            return result;
-        }
-        addr_ptr[i] = (char*) stackptr;
+    vaddr_t argv = stackptr;
+    for(int i = 0; i < len_arg + 1; i++) {
+        argv = argv - 4;
     }
-    addr_ptr[argc] = NULL;
-    offset = stackptr%4;
-    stackptr -= stackptr%4;
-    bzero((void*)stackptr, offset);
-    offset = (argc+1)*sizeof(char*);
-    stackptr -= offset;
-    result = copyout(addr_ptr, (userptr_t)stackptr, offset);
-    if(result){
-        return result;
+    
+    vaddr_t start = argv;
+    vaddr_t temp = argv;
+    
+    copyout(NULL, (userptr_t)(stackptr - 4), sizeof(char *));
+    for(int i = 0; i < len_arg; i++) {
+        int m = sizeof(char) * (strlen(kern_args[i]) + 1);
+        argv = argv - m;
+        copyout(kern_args[i], (userptr_t) argv, m);
+        copyout(&argv, (userptr_t) temp, sizeof(char *));
+        temp = temp + 4;
     }
-    argvptr = stackptr;
-    offset - stackptr%8;
-    bzero((void*)stackptr, offset);
-    kfree(addr_ptr);
-    enter_new_process(argc, (userptr_t)argvptr, stackptr, entrypoint);
+    while(argv % 8 != 0) {argv--;}
+    enter_new_process(len_arg, (userptr_t) start,(vaddr_t) argv, entrypoint);
 #else
-	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
-			  stackptr, entrypoint);
+    /* Warp to user mode. */
+    enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
+                      stackptr, entrypoint);
 #endif // OPT_A2b
 	
 	/* enter_new_process does not return. */

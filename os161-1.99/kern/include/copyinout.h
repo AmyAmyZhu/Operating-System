@@ -69,5 +69,9 @@ int copyout(const void *src, userptr_t userdest, size_t len);
 int copyinstr(const_userptr_t usersrc, char *dest, size_t len, size_t *got);
 int copyoutstr(const char *src, userptr_t userdest, size_t len, size_t *got);
 
+#if OPT_A2
+int getlen(char* scr);
+void cpy_stack(char* des, char* scr);
+#endif // OPT_A2b
 
 #endif /* _COPYINOUT_H_ */

@@ -73,7 +73,7 @@ int sys_waitpid(pid_t pid, userptr_t status, int options, pid_t *retval);
 #if OPT_A2
 // code you created or modified for ASST2 goes here
 int sys_fork(struct trapframe *tf, pid_t *retval);
-int sys_execv();
-#endif // OPT_A2
+int sys_execv(char* program, char** args);
+#endif // OPT_A2b
 
 #endif /* _SYSCALL_H_ */

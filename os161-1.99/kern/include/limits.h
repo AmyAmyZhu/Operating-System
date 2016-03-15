@@ -49,4 +49,8 @@
 #define OPEN_MAX        __OPEN_MAX
 #define IOV_MAX         __IOV_MAX
 
+#if OPT_A2
+#define LEN             200
+#endif // OPT_A2b
+
 #endif /* _LIMITS_H_ */
