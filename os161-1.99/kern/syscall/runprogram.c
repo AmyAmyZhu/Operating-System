@@ -110,9 +110,9 @@ runprogram(char *progname)
 #if OPT_A2
     char** newPtr = kmalloc((nargs+1)*sizeof(char*));
     for (int i=nargs-1; i>=0; --i){
-        stackptr-=l;
         char* kernArgs = args[i];
         int l = strlen(kernArgs)+1;
+        stackptr-=l;
         result = copyout(kernArgs, (userptr_t)stackptr, l);
         if (result) {
             return result;
