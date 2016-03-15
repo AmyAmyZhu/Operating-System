@@ -27,6 +27,8 @@
  * SUCH DAMAGE.
  */
 
+#include "opt-A2.h"
+
 #ifndef _LIMITS_H_
 #define _LIMITS_H_
 

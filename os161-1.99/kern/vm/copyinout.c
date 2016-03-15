@@ -36,6 +36,8 @@
 #include <vm.h>
 #include <copyinout.h>
 
+#include "opt-A2.h"
+
 /*
  * User/kernel memory copying functions.
  *
