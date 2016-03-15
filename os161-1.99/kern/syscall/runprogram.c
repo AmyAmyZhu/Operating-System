@@ -108,29 +108,24 @@ runprogram(char *progname)
     
     
 #if OPT_A2
-    char** newPtr = kmalloc((nargs+1)*sizeof(char*));
-    for (int i=nargs-1; i>=0; --i){
-        stackptr-=strlen(args[i])+1;
+    char **newPtr = kmalloc(sizeof(char*)*(nargs+1));
+    for(int i = nargs-1; i >= 0; i--){
+        stackptr -= strlen(args[i]) + 1;
         result = copyout(args[i], (userptr_t)stackptr, strlen(args[i])+1);
         newPtr[i] = (char*)stackptr;
     }
     
-    int offset = stackptr%4;
-    stackptr-=stackptr%4;
-    //bzero((void *)stackptr, offset);
-    
-    offset = (nargs+1)*sizeof(char*);
-    stackptr-=offset;
+    //int offset = stackptr%4;
+    stackptr -= stackptr%4;
+    offset = sizeof(char*)*(nargs+1);
+    stackptr -= offset;
     result = copyout(newPtr, (userptr_t)stackptr, offset);
-    vaddr_t argvptr = stackptr;
+    vaddr_t argsPtr = stackptr;
     
     offset = stackptr%8;
-    stackptr-=stackptr%8;
-    //bzero((void *)stackptr, offset);
-    
-    //kfree(newPtr);
-    enter_new_process(nargs, (userptr_t)argvptr, stackptr, entrypoint);
-#endif
+    stackptr -= stackptr%8;
+    enter_new_process(nargs, (userptr_t)argsPtr, stackptr, entrypoint);
+#endif // OPT_A2b
 	
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
