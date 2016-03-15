@@ -115,8 +115,7 @@ runprogram(char *progname)
         newPtr[i] = (char*)stackptr;
     }
     
-    stackptr -= stackptr%4;
-    stackptr -= sizeof(char*)*(nargs+1);
+    stackptr -= stackptr - stackptr%4 - sizeof(char*)*(nargs+1);
     result = copyout(newPtr, (userptr_t)stackptr, sizeof(char*)*(nargs+1));
     vaddr_t argsPtr = stackptr;
     stackptr -= stackptr%8;
