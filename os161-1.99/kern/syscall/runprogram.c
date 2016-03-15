@@ -33,6 +33,8 @@
  * that execv() needs to do more than this function does.
  */
 
+#include "opt-A2.h"
+
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/fcntl.h>
@@ -45,7 +47,6 @@
 #include <syscall.h>
 #include <test.h>
 #include <copyinout.h>
-#include "opt-A2.h"
 
 /*
  * Load program "progname" and start running it in usermode.
@@ -66,11 +67,7 @@ runprogram(char *progname)
 	int result;
     
 #if OPT_A2
-    char *copyArgv[numArgs];
-    for(int i = 0; i < numArgs; i++){
-        copyArgv[i] = kmalloc(sizeof(char)*(strlen(argv[i])+1));
-        strcpy(copyArgv[i], argv[i]);
-    }
+
 #endif // OPT_A2b
     
 	/* Open the file. */
@@ -114,6 +111,12 @@ runprogram(char *progname)
 	/* Warp to user mode. */
     
 #if OPT_A2
+    char *copyArgv[numArgs];
+    for(int i = 0; i < numArgs; i++){
+        copyArgv[i] = kmalloc(sizeof(char)*(strlen(argv[i])+1));
+        strcpy(copyArgv[i], argv[i]);
+    }
+    
     vaddr_t temp = stackptr;
     for(int i = 0; i < numArgs+1; i++){
         temp = temp - 4;
