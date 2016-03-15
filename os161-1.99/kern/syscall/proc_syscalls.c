@@ -180,7 +180,7 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 #endif // OPT_A2a
 
 #if OPT_A2
-int sys_execv(const_userptr_t program, userptr_t args) {
+int sys_execv(char* program, char** args) {
     int result;
     
     char name[strlen(program) + 1];
