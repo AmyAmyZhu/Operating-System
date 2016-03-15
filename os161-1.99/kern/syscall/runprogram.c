@@ -115,14 +115,10 @@ runprogram(char *progname)
         newPtr[i] = (char*)stackptr;
     }
     
-    //int offset = stackptr%4;
     stackptr -= stackptr%4;
-    int offset = sizeof(char*)*(nargs+1);
-    stackptr -= offset;
-    result = copyout(newPtr, (userptr_t)stackptr, offset);
+    stackptr -= sizeof(char*)*(nargs+1;
+    result = copyout(newPtr, (userptr_t)stackptr, sizeof(char*)*(nargs+1);
     vaddr_t argsPtr = stackptr;
-    
-    offset = stackptr%8;
     stackptr -= stackptr%8;
     enter_new_process(nargs, (userptr_t)argsPtr, stackptr, entrypoint);
 #endif // OPT_A2b
