@@ -126,9 +126,9 @@ runprogram(char *progname)
     }
     
     vaddr_t argsPtr = stackptr;
-    offset = stackptr%8;
+    //offset = stackptr%8;
     stackptr -= stackptr%8;
-    bzero((void*)stackptr, offset);
+    //bzero((void*)stackptr, offset);
     kfree(newPtr);
     enter_new_process(nargs, (userptr_t)argsPtr, stackptr, entrypoint);
 #endif
