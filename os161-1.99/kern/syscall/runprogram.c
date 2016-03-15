@@ -114,7 +114,7 @@ runprogram(char *progname)
     for(int i = nargs-1; i >= 0; i--){
         char *kernPtr = args[i];
         int l = strlen(args[i])+1;
-        stackptr -= strlen(args[i])+1;
+        stackptr -= l;
         result = copyout(kernPtr, (userptr_t)stackptr, l);
         if(result){
             return result;
