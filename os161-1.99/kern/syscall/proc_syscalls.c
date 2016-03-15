@@ -186,7 +186,6 @@ int sys_execv(char* program, char** args) {
     char name[strlen(program) + 1];
     result = copyin((userptr_t) program,
                     name, (strlen(program) + 1) * sizeof(char));
-    //kprintf("%s", name);
     
     int len_arg = 0;
     while(args[len_arg] != NULL) {
@@ -204,13 +203,7 @@ int sys_execv(char* program, char** args) {
         copyin((const_userptr_t)args[i], kern_args[i],
                (length_every_arg[i] + 1) * sizeof(char));
     }
-    /*
-     for(int i = 0; i < len_arg; i++) {
-     kprintf("{ _%d__%p__%p_",strlen(kern_args[i]), kern_args[i],args[i]);
-     kprintf("%s", kern_args[i]);
-     kprintf("}\n");
-     }
-     */
+
     /////////////////////////////////////////////////////
     // this is "copied" from runprogram
     struct addrspace* old_as;
@@ -258,14 +251,10 @@ int sys_execv(char* program, char** args) {
     vaddr_t temp = argv;
     
     copyout(NULL, (userptr_t)(stackptr - 4), 4);
-    //starts from 1, because argv[0] is reserved for the program name
     for(int i = 0; i < len_arg; i++) {
-        //question? why do I have to add 2
         int m = sizeof(char) * (strlen(kern_args[i]) + 1);
-        //	kprintf("the value of m -> %d\n", m);
         argv = argv - m;
         copyout(kern_args[i], (userptr_t)argv, m);
-        //	kprintf("***(%d)%s(%p)\n***", m, (char* )argv, (void *) argv);
         copyout(&argv, (userptr_t)temp, sizeof(char* ));
         temp = temp + 4;
     }
@@ -278,7 +267,6 @@ int sys_execv(char* program, char** args) {
     
     enter_new_process(len_arg, (userptr_t)start, (vaddr_t) argv, entrypoint);
     
-    //	enter_new_process(0, NULL, stackptr, entrypoint);
     panic("enter_new_process returned");
     return EINVAL;
 }
