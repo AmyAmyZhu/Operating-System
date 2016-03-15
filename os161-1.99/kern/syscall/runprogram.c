@@ -108,18 +108,18 @@ runprogram(char *progname)
     
     
 #if OPT_A2
-    char** addr_ptr = kmalloc((nargs+1)*sizeof(char*));
+    char** newPtr = kmalloc((nargs+1)*sizeof(char*));
     for (int i=nargs-1; i>=0; --i){
-        char* arg_str = args[i];
-        int length = strlen(arg_str)+1;
-        stackptr-=length;
-        result = copyout(arg_str, (userptr_t)stackptr, length);
+        int l = strlen(kernArgs)+1;
+        stackptr-=l;
+        char* kernArgs = args[i];
+        result = copyout(kernArgs, (userptr_t)stackptr, l);
         if (result) {
             return result;
         }
-        addr_ptr[i] = (char*) stackptr;
+        newPtr[i] = (char*) stackptr;
     }
-    addr_ptr[nargs] = NULL;
+    newPtr[nargs] = NULL;
     
     int offset = stackptr%4;
     stackptr-=stackptr%4;
@@ -127,7 +127,7 @@ runprogram(char *progname)
     
     offset = (nargs+1)*sizeof(char*);
     stackptr-=offset;
-    result = copyout(addr_ptr, (userptr_t)stackptr, offset);
+    result = copyout(newPtr, (userptr_t)stackptr, offset);
     if (result) {
         return result;
     }
@@ -137,7 +137,7 @@ runprogram(char *progname)
     stackptr-=stackptr%8;
     bzero((void *)stackptr, offset);
     
-    kfree(addr_ptr);
+    kfree(newPtr);
     enter_new_process(nargs, (userptr_t)argvptr, stackptr, entrypoint);
 #endif
 	
