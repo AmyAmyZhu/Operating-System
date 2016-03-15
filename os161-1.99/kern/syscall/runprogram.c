@@ -114,23 +114,21 @@ runprogram(char *progname)
         result = copyout(args[i], (userptr_t)stackptr, strlen(args[i])+1);
         newPtr[i] = (char*)stackptr;
     }
+    
     int offset = stackptr%4;
     stackptr-=stackptr%4;
-    bzero((void *)stackptr, offset);
+    //bzero((void *)stackptr, offset);
     
     offset = (nargs+1)*sizeof(char*);
     stackptr-=offset;
     result = copyout(newPtr, (userptr_t)stackptr, offset);
-    if (result) {
-        return result;
-    }
     vaddr_t argvptr = stackptr;
     
     offset = stackptr%8;
     stackptr-=stackptr%8;
-    bzero((void *)stackptr, offset);
+    //bzero((void *)stackptr, offset);
     
-    kfree(newPtr);
+    //kfree(newPtr);
     enter_new_process(nargs, (userptr_t)argvptr, stackptr, entrypoint);
 #endif
 	
