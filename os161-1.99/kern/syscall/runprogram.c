@@ -109,6 +109,7 @@ runprogram(char *progname)
     
 #if OPT_A2
     // copy argv to the stack of user address space
+    int offset;
     char** addr_ptr = kmalloc((argc+1)*sizeof(char*)); // sizeof(char*) = 4 bytes
     for (int i=argc-1; i>=0; --i){
         char* arg_str = argv[i];
