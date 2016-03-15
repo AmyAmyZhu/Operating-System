@@ -108,6 +108,7 @@ runprogram(char *progname)
     
     
 #if OPT_A2
+    int offset;
     char **newPtr = kmalloc((nargs+1)*sizeof(char*));
     for(int i = nargs-1; i >= 0; i--){
         stackptr -= strlen(args[i])+1;
@@ -118,7 +119,7 @@ runprogram(char *progname)
         }
         newPtr[i] = (char*)stackptr;
     }
-    int offset = (nargs+1)*sizeof(char*);
+    offset = (nargs+1)*sizeof(char*);
     stackptr -= offset;
     result = copyout(newPtr, (userptr_t)stackptr, offset);
     if(result){
