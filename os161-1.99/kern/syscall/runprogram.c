@@ -117,7 +117,7 @@ runprogram(char *progname)
     
     //int offset = stackptr%4;
     stackptr -= stackptr%4;
-    offset = sizeof(char*)*(nargs+1);
+    int offset = sizeof(char*)*(nargs+1);
     stackptr -= offset;
     result = copyout(newPtr, (userptr_t)stackptr, offset);
     vaddr_t argsPtr = stackptr;
