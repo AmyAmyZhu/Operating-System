@@ -56,7 +56,7 @@
  */
 int
 #if OPT_A2
-runprogram(char *progname, char **argv, int numArgs)
+runprogram(char *progname, char **argv, int argc)
 #else
 runprogram(char *progname)
 #endif // OPT_A2b
@@ -106,33 +106,48 @@ runprogram(char *progname)
 
 	/* Warp to user mode. */
     
+    
 #if OPT_A2
-    char *copyArgv[numArgs];
-    for(int i = 0; i < numArgs; i++){
-        copyArgv[i] = kmalloc(sizeof(char)*(strlen(argv[i])+1));
-        strcpy(copyArgv[i], argv[i]);
+    // copy argv to the stack of user address space
+    char** addr_ptr = kmalloc((argc+1)*sizeof(char*)); // sizeof(char*) = 4 bytes
+    for (int i=argc-1; i>=0; --i){
+        char* arg_str = argv[i];
+        int length = strlen(arg_str)+1;
+        stackptr-=length;
+        result = copyout(arg_str, (userptr_t)stackptr, length);     // assume it automatically fill 0
+        if (result) {
+            /* p_addrspace will go away when curproc is destroyed */
+            return result;
+        }
+        addr_ptr[i] = (char*) stackptr;
     }
+    addr_ptr[argc] = NULL;
     
-    vaddr_t temp = stackptr;
-    for(int i = 0; i < numArgs+1; i++){
-        temp = temp - 4;
-    }
-    vaddr_t start = temp;
-    vaddr_t offset = temp;
+    offset = stackptr%4;
+    stackptr-=stackptr%4;
+    bzero((void *)stackptr, offset);
     
-    copyout(NULL, (userptr_t)(stackptr-4), sizeof(char*));
-    for(int i = 0; i < numArgs; i++){
-        int m = sizeof(char)*(strlen(copyArgv[i])+1);
-        temp = temp - m;
-        copyout(copyArgv[i], (userptr_t)temp, m);
-        copyout(&temp, (userptr_t)offset, sizeof(char*));
-        offset = offset+4;
+    offset = (argc+1)*sizeof(char*);
+    stackptr-=offset;
+    result = copyout(addr_ptr, (userptr_t)stackptr, offset);     // assume it automatically fill 0
+    if (result) {
+        /* p_addrspace will go away when curproc is destroyed */
+        return result;
     }
-    while (temp%8 != 0) {
-        temp--;
-    }
-    enter_new_process(numArgs, (userptr_t)start, (vaddr_t)temp, entrypoint);
-#endif // OPT_A2b
+    argvptr = stackptr;
+    
+    offset = stackptr%8;
+    stackptr-=stackptr%8;
+    bzero((void *)stackptr, offset);
+    
+    kfree(addr_ptr);
+    enter_new_process(argc /*argc*/, (userptr_t)argvptr /*userspace addr of argv*/,
+                      stackptr, entrypoint);
+#else
+    /* Warp to user mode. */
+    enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
+                      stackptr, entrypoint);
+#endif
 	
 	/* enter_new_process does not return. */
 	panic("enter_new_process returned\n");
