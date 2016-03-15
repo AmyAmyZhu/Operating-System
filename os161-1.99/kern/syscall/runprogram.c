@@ -56,7 +56,7 @@
  */
 int
 #if OPT_A2
-runprogram(char *progname, char **args, int nargs)
+runprogram(char *progname, char **argv, int argc)
 #else
 runprogram(char *progname)
 #endif // OPT_A2b
