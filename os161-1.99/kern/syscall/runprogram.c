@@ -55,7 +55,7 @@
  */
 int
 #if OPT_A2
-runprogram(char* progname, char** args, int nargs)
+runprogram(char *progname, char **argv, int numArgs)
 #else
 runprogram(char *progname)
 #endif // OPT_A2b
@@ -66,14 +66,10 @@ runprogram(char *progname)
 	int result;
     
 #if OPT_A2
-    int len_arg = nargs;
-    
-    char* kern_args[len_arg];
-    for(int i = 0; i < len_arg; i++) {
-        kern_args[i] = kmalloc(sizeof(char) * (strlen(args[i]) + 1));
-        //copyin((userptr_t)args[i], kern_args[i],
-        //		(strlen(args[i]) + 1) * sizeof(char));
-        strcpy(kern_args[i], args[i]);
+    char *copyArgv[numArgs];
+    for(int i = 0; i < numArgs; i++){
+        copyArgv[i] = kmalloc(sizeof(char)*(strlen(argv[i])+1));
+        strcpy(copyArgv[i], argv[i]);
     }
 #endif // OPT_A2b
     
@@ -118,28 +114,25 @@ runprogram(char *progname)
 	/* Warp to user mode. */
     
 #if OPT_A2
-    vaddr_t argv = stackptr;
-    for(int i = 0; i < len_arg + 1; i++) {
-        argv = argv - 4;
+    vaddr_t temp = stackptr;
+    for(int i = 0; i < numArgs+1; i++){
+        temp = temp - 4;
     }
+    vaddr_t start = temp;
+    vaddr_t offset = temp;
     
-    vaddr_t start = argv;
-    vaddr_t temp = argv;
-    
-    copyout(NULL, (userptr_t)(stackptr - 4), sizeof(char *));
-    for(int i = 0; i < len_arg; i++) {
-        int m = sizeof(char) * (strlen(kern_args[i]) + 1);
-        argv = argv - m;
-        copyout(kern_args[i], (userptr_t) argv, m);
-        copyout(&argv, (userptr_t) temp, sizeof(char *));
-        temp = temp + 4;
+    copyout(NULL, (userptr_t)(stackptr-4), sizeof(char*));
+    for(int i = 0; i < numArgs; i++){
+        int m = sizeof(char)*(strlen(copyArgv[i])+1);
+        temp = temp - m;
+        copyout(copyArgv[i], (userptr_t)temp, m);
+        copyout(&temp, (userptr_t)offset, sizeof(char*));
+        offset = offset+4;
     }
-    while(argv % 8 != 0) {argv--;}
-    enter_new_process(len_arg, (userptr_t) start,(vaddr_t) argv, entrypoint);
-#else
-    /* Warp to user mode. */
-    enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,
-                      stackptr, entrypoint);
+    while (temp%8 != 0) {
+        temp--;
+    }
+    enter_new_process(numArgs, (userptr_t)start, (vaddr_t)temp, entrypoint);
 #endif // OPT_A2b
 	
 	/* enter_new_process does not return. */

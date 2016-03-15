@@ -27,7 +27,6 @@
  * SUCH DAMAGE.
  */
 
-
 #ifndef _COPYINOUT_H_
 #define _COPYINOUT_H_
 
