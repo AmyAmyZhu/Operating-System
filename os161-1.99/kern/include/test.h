@@ -85,7 +85,7 @@ int nettest(int, char **);
 
 /* Routine for running a user-level program. */
 #if OPT_A2
-runprogram(char *progname, char **argv, int numArgs);
+int runprogram(char *progname, char **argv, int numArgs);
 #else
 int runprogram(char *progname);
 #endif // OPT_A2b
