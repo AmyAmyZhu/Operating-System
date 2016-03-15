@@ -117,7 +117,7 @@ runprogram(char *progname)
     
     stackptr -= stackptr%4;
     stackptr -= sizeof(char*)*(nargs+1);
-    result = copyout(newPtr, (userptr_t)stackptr, sizeof(char*)*(nargs+1);
+    result = copyout(newPtr, (userptr_t)stackptr, sizeof(char*)*(nargs+1));
     vaddr_t argsPtr = stackptr;
     stackptr -= stackptr%8;
     enter_new_process(nargs, (userptr_t)argsPtr, stackptr, entrypoint);
