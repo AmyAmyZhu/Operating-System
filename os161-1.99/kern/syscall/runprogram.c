@@ -66,10 +66,6 @@ runprogram(char *progname)
 	vaddr_t entrypoint, stackptr;
 	int result;
     
-#if OPT_A2
-
-#endif // OPT_A2b
-    
 	/* Open the file. */
 	result = vfs_open(progname, O_RDONLY, 0, &v);
 	if (result) {

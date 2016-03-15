@@ -101,7 +101,7 @@ cmd_progthread(void *ptr, unsigned long nargs)
 	strcpy(progname, args[0]);
     
 #if OPT_A2
-    result = runprogram(progname, args, nargs);
+    result = runprogram(progname, argv, numArgs);
 #else
     if (nargs > 2) {
         kprintf("Warning: argument passing from menu not supported\n");
