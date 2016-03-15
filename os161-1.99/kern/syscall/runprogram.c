@@ -108,42 +108,37 @@ runprogram(char *progname)
     
     
 #if OPT_A2
-    int offset;
-    vaddr_t argvptr;
-    char** addr_ptr = kmalloc((nargs+1)*sizeof(char*)); // sizeof(char*) = 4 bytes
+    char** addr_ptr = kmalloc((nargs+1)*sizeof(char*));
     for (int i=nargs-1; i>=0; --i){
         char* arg_str = args[i];
         int length = strlen(arg_str)+1;
         stackptr-=length;
-        result = copyout(arg_str, (userptr_t)stackptr, length);     // assume it automatically fill 0
+        result = copyout(arg_str, (userptr_t)stackptr, length);
         if (result) {
-            /* p_addrspace will go away when curproc is destroyed */
             return result;
         }
         addr_ptr[i] = (char*) stackptr;
     }
     addr_ptr[nargs] = NULL;
     
-    offset = stackptr%4;
+    int offset = stackptr%4;
     stackptr-=stackptr%4;
     bzero((void *)stackptr, offset);
     
     offset = (nargs+1)*sizeof(char*);
     stackptr-=offset;
-    result = copyout(addr_ptr, (userptr_t)stackptr, offset);     // assume it automatically fill 0
+    result = copyout(addr_ptr, (userptr_t)stackptr, offset);
     if (result) {
-        /* p_addrspace will go away when curproc is destroyed */
         return result;
     }
-    argvptr = stackptr;
+    vaddr_t argvptr = stackptr;
     
     offset = stackptr%8;
     stackptr-=stackptr%8;
     bzero((void *)stackptr, offset);
     
     kfree(addr_ptr);
-    enter_new_process(nargs /*argc*/, (userptr_t)argvptr /*userspace addr of argv*/,
-                      stackptr, entrypoint);
+    enter_new_process(nargs, (userptr_t)argvptr, stackptr, entrypoint);
 #endif
 	
 	/* enter_new_process does not return. */
