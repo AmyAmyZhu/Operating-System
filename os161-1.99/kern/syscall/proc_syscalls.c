@@ -194,7 +194,7 @@ int sys_execv(char* program, char** args) {
     //int result = copyin((userptr_t) program,
                    // name, (strlen(program) + 1) * sizeof(char));
     
-    int total;
+    int total, result;
     for(total = 0; args[total] != NULL; total++);
     
     int totalArgs[total];
