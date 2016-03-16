@@ -179,12 +179,12 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 }
 #endif // OPT_A2a
 
-/*#if OPT_A2
+#if OPT_A2
 int sys_execv(char *program, char **args){
     int total, result;
-    vaddr_t start, argsPtr, stackptr, entrypoint;
+    vaddr_t start, offset, argsPtr, stackptr, entrypoint;
     struct vnode *change;
-    struct addrspace *oldAddr, newAddr;
+    struct addrspace *oldAddr;
     for(total = 0; args[total] != NULL; total++);
  
     int totalArgs[total];
@@ -195,39 +195,14 @@ int sys_execv(char *program, char **args){
         copyin((const_userptr_t)args[i], kernArgs[i], (totalArgs[i]+1)*sizeof(char));
     }
     
-    enter_new_process(total, , ,entrypoint);
-    panic("sys_execv returned");
-    return EINVAL;
-}
-#endif // OPT_A2b*/
-
-
-
-#if OPT_A2
-int sys_execv(char* program, char** args) {
-    int total, result;
-    vaddr_t start, argsPtr, stackptr, entrypoint;
-    struct vnode *change;
-    struct addrspace *oldAddr;
-    for(total = 0; args[total] != NULL; total++);
-    
-    int totalArgs[total];
-    char *kernArgs[total];
-    for(int i = 0; i < total; i++){
-        totalArgs[i] = strlen(args[i]);
-        kernArgs[i] = kmalloc(sizeof(char)*totalArgs[i]+1);
-        copyin((const_userptr_t)args[i], kernArgs[i], (totalArgs[i]+1)*sizeof(char));
-    }
-    
     result = vfs_open(program, O_RDONLY, 0, &change);
-    if(result) {
-        return result;
-    }
+    if(result) return result;
     as_deactivate();
     oldAddr = curproc_setas(NULL);
     as_destroy(oldAddr);
+    
     struct addrspace *newAddr = as_create();
-    if(newAddr == NULL) {
+    if(newAddr == NULL){
         vfs_close(change);
         return ENOMEM;
     }
@@ -240,33 +215,29 @@ int sys_execv(char* program, char** args) {
     }
     vfs_close(change);
     result = as_define_stack(newAddr, &stackptr);
-    if(result) {
-        return result;
-    }
+    if(result) return result;
     
     argsPtr = stackptr;
-    for(int i = 0; i < total + 1; i++) {
+    for(int i = 0; i < totall i++){
         argsPtr -= 4;
     }
-    
-    start = argsPtr;
-    vaddr_t temp = argsPtr;
-    copyout(NULL, (userptr_t)(stackptr - 4), 4);
-    for(int i = 0; i < total; i++) {
-        argsPtr = argsPtr - sizeof(char) * (strlen(kernArgs[i]) + 1);
-        copyout(kernArgs[i], (userptr_t)argsPtr, sizeof(char) * (strlen(kernArgs[i]) + 1));
-        copyout(&argsPtr, (userptr_t)temp, sizeof(char* ));
-        temp += 4;
+    start = offset = argsPtr;
+    copyout(NULL, (userptr_t)(stackptr-4), 4);
+    for(int i = 0; i < total; i++){
+        argsPtr -= sizeof(char)*(strlen(kernArgs[i])+1);
+        copyout(kernArgs[i], (userptr_t)argsPtr, sizeof(char)*(strlen(kernArgs[i])+1));
+        copyout(&argsPtr, (userptr_t)offset, sizeof(char*));
+        offset += 4;
     }
-    for(int i = 0; i < total; i++) {
+    for(int i = 0; i < total; i++){
         kfree(kernArgs[i]);
     }
-    while(argsPtr % 8 != 0) {
+    while (argsPtr%8 != 0) {
         argsPtr--;
     }
     enter_new_process(total, (userptr_t)start, (vaddr_t)argsPtr, entrypoint);
-    panic("enter_new_process returned");
+    panic("sys_execv returned");
     return EINVAL;
 }
-
 #endif // OPT_A2b
+
