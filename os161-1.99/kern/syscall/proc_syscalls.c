@@ -186,7 +186,7 @@ int sys_execv(char *program, char **args){
     struct vnode *change;
     struct addrspace *oldAddr;
     for(total = 0; args[total] != NULL; total++);
- 
+    
     int totalArgs[total];
     char *kernArgs[total];
     for(int i = 0; i < total; i++){
@@ -218,7 +218,7 @@ int sys_execv(char *program, char **args){
     if(result) return result;
     
     argsPtr = stackptr;
-    for(int i = 0; i < total; i++){
+    for(int i = 0; i < total+1; i++){
         argsPtr -= 4;
     }
     start = offset = argsPtr;
@@ -241,3 +241,58 @@ int sys_execv(char *program, char **args){
 }
 #endif // OPT_A2b
 
+
+/*
+#if OPT_A2
+int sys_execv(char* program, char** args) {
+    result = vfs_open(program, O_RDONLY, 0, &change);
+    if(result) {
+        return result;
+    }
+    as_deactivate();
+    oldAddr = curproc_setas(NULL);
+    as_destroy(oldAddr);
+    struct addrspace *newAddr = as_create();
+    if(newAddr == NULL) {
+        vfs_close(change);
+        return ENOMEM;
+    }
+    curproc_setas(newAddr);
+    as_activate();
+    result = load_elf(change, &entrypoint);
+    if(result) {
+        vfs_close(change);
+        return result;
+    }
+    vfs_close(change);
+    result = as_define_stack(newAddr, &stackptr);
+    if(result) {
+        return result;
+    }
+    
+    argsPtr = stackptr;
+    for(int i = 0; i < total + 1; i++) {
+        argsPtr -= 4;
+    }
+    
+    start = argsPtr;
+    vaddr_t temp = argsPtr;
+    copyout(NULL, (userptr_t)(stackptr - 4), 4);
+    for(int i = 0; i < total; i++) {
+        argsPtr = argsPtr - sizeof(char) * (strlen(kernArgs[i]) + 1);
+        copyout(kernArgs[i], (userptr_t)argsPtr, sizeof(char) * (strlen(kernArgs[i]) + 1));
+        copyout(&argsPtr, (userptr_t)temp, sizeof(char* ));
+        temp += 4;
+    }
+    for(int i = 0; i < total; i++) {
+        kfree(kernArgs[i]);
+    }
+    while(argsPtr % 8 != 0) {
+        argsPtr--;
+    }
+    enter_new_process(total, (userptr_t)start, (vaddr_t)argsPtr, entrypoint);
+    panic("enter_new_process returned");
+    return EINVAL;
+}
+
+#endif // OPT_A2b*/
