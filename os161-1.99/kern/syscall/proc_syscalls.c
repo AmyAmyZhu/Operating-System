@@ -181,9 +181,12 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 
 /*#if OPT_A2
 int sys_execv(char *program, char **args){
-    int total;
+    int total, result;
+    vaddr_t start, argsPtr, stackptr, entrypoint;
+    struct vnode *change;
+    struct addrspace *oldAddr, newAddr;
     for(total = 0; args[total] != NULL; total++);
-    
+ 
     int totalArgs[total];
     char *kernArgs[total];
     for(int i = 0; i < total; i++){
@@ -203,6 +206,9 @@ int sys_execv(char *program, char **args){
 #if OPT_A2
 int sys_execv(char* program, char** args) {
     int total, result;
+    vaddr_t start, argsPtr, stackptr, entrypoint;
+    struct vnode *change;
+    struct addrspace *oldAddr, newAddr;
     for(total = 0; args[total] != NULL; total++);
     
     int totalArgs[total];
@@ -212,43 +218,38 @@ int sys_execv(char* program, char** args) {
         kernArgs[i] = kmalloc(sizeof(char)*totalArgs[i]+1);
         copyin((const_userptr_t)args[i], kernArgs[i], (totalArgs[i]+1)*sizeof(char));
     }
-
-    struct addrspace* oldAddr;
-    struct vnode* v;
-    vaddr_t entrypoint, stackptr;
     
-    result = vfs_open(program, O_RDONLY, 0, &v);
+    result = vfs_open(program, O_RDONLY, 0, &change);
     if(result) {
         return result;
     }
-    
     as_deactivate();
     oldAddr = curproc_setas(NULL);
     as_destroy(oldAddr);
-    
-    struct addrspace* newAddr = as_create();
+    newAddr = as_create();
     if(newAddr == NULL) {
-        vfs_close(v);
+        vfs_close(change);
         return ENOMEM;
     }
     curproc_setas(newAddr);
     as_activate();
-    
-    result = load_elf(v, &entrypoint);
+    result = load_elf(change, &entrypoint);
     if(result) {
-        vfs_close(v);
+        vfs_close(change);
         return result;
     }
-    vfs_close(v);
+    vfs_close(change);
     result = as_define_stack(newAddr, &stackptr);
     if(result) {
         return result;
     }
-    vaddr_t argsPtr = stackptr;
+    
+    argsPtr = stackptr;
     for(int i = 0; i < total + 1; i++) {
         argsPtr -= 4;
     }
-    vaddr_t start = argsPtr;
+    
+    start = argsPtr;
     vaddr_t temp = argsPtr;
     copyout(NULL, (userptr_t)(stackptr - 4), 4);
     for(int i = 0; i < total; i++) {
