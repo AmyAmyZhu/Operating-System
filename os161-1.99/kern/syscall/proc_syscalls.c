@@ -190,9 +190,9 @@ int sys_execv(char *program, char **args){
 
 #if OPT_A2
 int sys_execv(char* program, char** args) {
-    char name[strlen(program) + 1];
-    int result = copyin((userptr_t) program,
-                    name, (strlen(program) + 1) * sizeof(char));
+    //char name[strlen(program) + 1];
+    //int result = copyin((userptr_t) program,
+                   // name, (strlen(program) + 1) * sizeof(char));
     
     int total;
     for(total = 0; args[total] != NULL; total++);
