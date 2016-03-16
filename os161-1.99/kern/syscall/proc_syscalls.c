@@ -228,9 +228,9 @@ int sys_execv(char *program, char **args){
         copyout(kernArgs[i], (userptr_t)argsPtr, sizeof(char)*(strlen(kernArgs[i])+1));
         copyout(&argsPtr, (userptr_t)offset, sizeof(char*));
         offset += 4;
+        kfree(kernArgs[i]);
     }
     for(int i = 0; i < total; i++){
-        kfree(kernArgs[i]);
     }
     while (argsPtr%8 != 0) {
         argsPtr--;
