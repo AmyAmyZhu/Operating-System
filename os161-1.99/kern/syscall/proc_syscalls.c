@@ -208,7 +208,7 @@ int sys_execv(char* program, char** args) {
     int total, result;
     vaddr_t start, argsPtr, stackptr, entrypoint;
     struct vnode *change;
-    struct addrspace *oldAddr, newAddr;
+    struct addrspace *oldAddr;
     for(total = 0; args[total] != NULL; total++);
     
     int totalArgs[total];
@@ -226,7 +226,7 @@ int sys_execv(char* program, char** args) {
     as_deactivate();
     oldAddr = curproc_setas(NULL);
     as_destroy(oldAddr);
-    newAddr = as_create();
+    struct addrspace *newAddr = as_create();
     if(newAddr == NULL) {
         vfs_close(change);
         return ENOMEM;
