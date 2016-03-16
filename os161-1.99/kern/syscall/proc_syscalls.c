@@ -218,7 +218,7 @@ int sys_execv(char *program, char **args){
     if(result) return result;
     
     argsPtr = stackptr;
-    for(int i = 0; i < totall i++){
+    for(int i = 0; i < total; i++){
         argsPtr -= 4;
     }
     start = offset = argsPtr;
