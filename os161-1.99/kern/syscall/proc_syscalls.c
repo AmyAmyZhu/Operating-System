@@ -197,16 +197,16 @@ int sys_execv(char* program, char** args) {
     int total, result;
     for(total = 0; args[total] != NULL; total++);
     
-    //int totalArgs[total];
-    //for(int i = 0; i < total; i++) {
-      //  totalArgs[i] = strlen(args[i]);
-    //}
+    int totalArgs[total];
+    for(int i = 0; i < total; i++) {
+        totalArgs[i] = strlen(args[i]);
+    }
     
     char* kernArgs[total];
     for(int i = 0; i < total; i++) {
-        kernArgs[i] = kmalloc(sizeof(char) * strlen(args[i] + 1));
+        kernArgs[i] = kmalloc(sizeof(char) * totalArgs[i] + 1);
         copyin((const_userptr_t)args[i], kernArgs[i],
-               (strlen(args[i] + 1)) * sizeof(char));
+               (totalArgs[i] + 1) * sizeof(char));
     }
 
     struct addrspace* oldAddr;
