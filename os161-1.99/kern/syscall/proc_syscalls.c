@@ -187,6 +187,8 @@ int sys_execv(char *program, char **args){
 #endif // OPT_A2b
 
 */
+
+#if OPT_A2
 int sys_execv(char* program, char** args) {
     char name[strlen(program) + 1];
     int result = copyin((userptr_t) program,
