@@ -181,32 +181,28 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 
 #if OPT_A2
 int sys_execv(char* program, char** args) {
-    int result;
-    
     char name[strlen(program) + 1];
-    result = copyin((userptr_t) program,
+    int result = copyin((userptr_t) program,
                     name, (strlen(program) + 1) * sizeof(char));
     
-    int len_arg = 0;
-    while(args[len_arg] != NULL) {
-        len_arg++;
+    int total = 0;
+    while(args[total] != NULL) {
+        total++;
     }
     
-    int length_every_arg[len_arg];
-    for(int i = 0; i < len_arg; i++) {
-        length_every_arg[i] = strlen(args[i]);
+    int totalArgs[total];
+    for(int i = 0; i < total; i++) {
+        totalArgs[i] = strlen(args[i]);
     }
     
-    char* kern_args[len_arg];
-    for(int i = 0; i < len_arg; i++) {
-        kern_args[i] = kmalloc(sizeof(char) * length_every_arg[i] + 1);
-        copyin((const_userptr_t)args[i], kern_args[i],
-               (length_every_arg[i] + 1) * sizeof(char));
+    char* kernArgs[total];
+    for(int i = 0; i < total; i++) {
+        kernArgs[i] = kmalloc(sizeof(char) * totalArgs[i] + 1);
+        copyin((const_userptr_t)args[i], kernArgs[i],
+               (totalArgs[i] + 1) * sizeof(char));
     }
 
-    /////////////////////////////////////////////////////
-    // this is "copied" from runprogram
-    struct addrspace* old_as;
+    struct addrspace* oldAddr;
     struct vnode* v;
     vaddr_t entrypoint, stackptr;
     
@@ -216,15 +212,15 @@ int sys_execv(char* program, char** args) {
     }
     
     as_deactivate();
-    old_as = curproc_setas(NULL);
-    as_destroy(old_as);
+    oldAddr = curproc_setas(NULL);
+    as_destroy(oldAddr);
     
-    struct addrspace* new_as = as_create();
-    if(new_as == NULL) {
+    struct addrspace* newAddr = as_create();
+    if(newAddr == NULL) {
         vfs_close(v);
         return ENOMEM;
     }
-    curproc_setas(new_as);
+    curproc_setas(newAddr);
     as_activate();
     
     result = load_elf(v, &entrypoint);
@@ -232,41 +228,31 @@ int sys_execv(char* program, char** args) {
         vfs_close(v);
         return result;
     }
-    
     vfs_close(v);
-    
-    result = as_define_stack(new_as, &stackptr);
+    result = as_define_stack(newAddr, &stackptr);
     if(result) {
         return result;
     }
-    //////////////////////////////////////////////////////////
-    // kern_args
-    // the addr of stackptr is 0x8000 0000
-    vaddr_t argv = stackptr;
-    for(int i = 0; i < len_arg + 1; i++) {
-        argv = argv - 4;
+    vaddr_t argsPtr = stackptr;
+    for(int i = 0; i < total + 1; i++) {
+        argsPtr -= 4;
     }
-    
-    vaddr_t start = argv;
-    vaddr_t temp = argv;
-    
+    vaddr_t start = argsPtr;
+    vaddr_t temp = argsPtr;
     copyout(NULL, (userptr_t)(stackptr - 4), 4);
-    for(int i = 0; i < len_arg; i++) {
-        int m = sizeof(char) * (strlen(kern_args[i]) + 1);
-        argv = argv - m;
-        copyout(kern_args[i], (userptr_t)argv, m);
-        copyout(&argv, (userptr_t)temp, sizeof(char* ));
-        temp = temp + 4;
+    for(int i = 0; i < total; i++) {
+        argsPtr = argsPtr - sizeof(char) * (strlen(kernArgs[i]) + 1);
+        copyout(kernArgs[i], (userptr_t)argsPtr, sizeof(char) * (strlen(kernArgs[i]) + 1));
+        copyout(&argsPtr, (userptr_t)temp, sizeof(char* ));
+        temp += 4;
     }
-    
-    for(int i = 0; i < len_arg; i++) {
-        kfree(kern_args[i]);
+    for(int i = 0; i < total; i++) {
+        kfree(kernArgs[i]);
     }
-    
-    while(argv % 8 != 0) {argv--;}
-    
-    enter_new_process(len_arg, (userptr_t)start, (vaddr_t) argv, entrypoint);
-    
+    while(argsPtr % 8 != 0) {
+        argsPtr--;
+    }
+    enter_new_process(total, (userptr_t)start, (vaddr_t)argsPtr, entrypoint);
     panic("enter_new_process returned");
     return EINVAL;
 }

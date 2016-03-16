@@ -54,11 +54,10 @@
  *
  * Calls vfs_open on progname and thus may destroy it.
  */
-int
 #if OPT_A2
-runprogram(char *progname, char **args, int nargs)
+int runprogram(char *progname, char **args, int nargs)
 #else
-runprogram(char *progname)
+int runprogram(char *progname)
 #endif // OPT_A2b
 {
 	struct addrspace *as;
@@ -105,7 +104,6 @@ runprogram(char *progname)
 	}
 
 	/* Warp to user mode. */
-    
     
 #if OPT_A2
     char **newPtr = kmalloc(sizeof(char*)*(nargs+1));
