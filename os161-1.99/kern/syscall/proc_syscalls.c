@@ -179,14 +179,14 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 }
 #endif // OPT_A2a
 
-#if OPT_A2
+/*#if OPT_A2
 int sys_execv(char *program, char **args){
     int total;
     for(total = 0; args[total] != NULL; total++);
 }
 #endif // OPT_A2b
 
-
+*/
 int sys_execv(char* program, char** args) {
     char name[strlen(program) + 1];
     int result = copyin((userptr_t) program,
