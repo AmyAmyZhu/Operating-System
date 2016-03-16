@@ -183,30 +183,30 @@ int sys_fork(struct trapframe *tf, pid_t *retval){
 int sys_execv(char *program, char **args){
     int total;
     for(total = 0; args[total] != NULL; total++);
+    
+    enter_new_process(total, , ,entrypoint);
+    panic("sys_execv returned");
+    return EINVAL;
 }
-#endif // OPT_A2b
+#endif // OPT_A2b*/
 
-*/
+
 
 #if OPT_A2
 int sys_execv(char* program, char** args) {
-    //char name[strlen(program) + 1];
-    //int result = copyin((userptr_t) program,
-                   // name, (strlen(program) + 1) * sizeof(char));
-    
     int total, result;
     for(total = 0; args[total] != NULL; total++);
     
-    int totalArgs[total];
-    for(int i = 0; i < total; i++) {
-        totalArgs[i] = strlen(args[i]);
-    }
+    //int totalArgs[total];
+    //for(int i = 0; i < total; i++) {
+      //  totalArgs[i] = strlen(args[i]);
+    //}
     
     char* kernArgs[total];
     for(int i = 0; i < total; i++) {
-        kernArgs[i] = kmalloc(sizeof(char) * totalArgs[i] + 1);
+        kernArgs[i] = kmalloc(sizeof(char) * strlen(args[i] + 1);
         copyin((const_userptr_t)args[i], kernArgs[i],
-               (totalArgs[i] + 1) * sizeof(char));
+               (strlen(args[i] + 1) * sizeof(char));
     }
 
     struct addrspace* oldAddr;
