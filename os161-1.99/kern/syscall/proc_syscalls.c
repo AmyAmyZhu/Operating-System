@@ -184,6 +184,14 @@ int sys_execv(char *program, char **args){
     int total;
     for(total = 0; args[total] != NULL; total++);
     
+    int totalArgs[total];
+    char *kernArgs[total];
+    for(int i = 0; i < total; i++){
+        totalArgs[i] = strlen(args[i]);
+        kernArgs[i] = kmalloc(sizeof(char)*totalArgs[i]+1);
+        copyin((const_userptr_t)args[i], kernArgs[i], (totalArgs[i]+1)*sizeof(char));
+    }
+    
     enter_new_process(total, , ,entrypoint);
     panic("sys_execv returned");
     return EINVAL;
@@ -198,15 +206,11 @@ int sys_execv(char* program, char** args) {
     for(total = 0; args[total] != NULL; total++);
     
     int totalArgs[total];
-    for(int i = 0; i < total; i++) {
+    char *kernArgs[total];
+    for(int i = 0; i < total; i++){
         totalArgs[i] = strlen(args[i]);
-    }
-    
-    char* kernArgs[total];
-    for(int i = 0; i < total; i++) {
-        kernArgs[i] = kmalloc(sizeof(char) * totalArgs[i] + 1);
-        copyin((const_userptr_t)args[i], kernArgs[i],
-               (totalArgs[i] + 1) * sizeof(char));
+        kernArgs[i] = kmalloc(sizeof(char)*totalArgs[i]+1);
+        copyin((const_userptr_t)args[i], kernArgs[i], (totalArgs[i]+1)*sizeof(char));
     }
 
     struct addrspace* oldAddr;
