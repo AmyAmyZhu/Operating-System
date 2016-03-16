@@ -206,7 +206,7 @@ int sys_execv(char* program, char** args) {
     for(int i = 0; i < total; i++) {
         kernArgs[i] = kmalloc(sizeof(char) * strlen(args[i] + 1));
         copyin((const_userptr_t)args[i], kernArgs[i],
-               (strlen(args[i] + 1) * sizeof(char));
+               (strlen(args[i] + 1)) * sizeof(char));
     }
 
     struct addrspace* oldAddr;
