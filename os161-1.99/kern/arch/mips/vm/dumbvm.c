@@ -126,14 +126,14 @@ getppages(unsigned long npages)
         }
         if(foundArea == true){
             for(int i = 0; i < pages; i++){
-                coremap[staringInt+i].inUse = true;
+                coremap[startingInt+i].inUse = true;
                 if(i == pages-1){
-                    coremap[staringInt+i].contiguous = false;
+                    coremap[startingInt+i].contiguous = false;
                 } else {
-                    coremap[staringInt+i].contiguous = true;
+                    coremap[startingInt+i].contiguous = true;
                 }
             }
-            addr = coremap[staringInt].adr;
+            addr = coremap[startingInt].adr;
         } else {
             spinlock_release(&stealmem_lock);
             kprintf("outa memory allocating frames\n");
