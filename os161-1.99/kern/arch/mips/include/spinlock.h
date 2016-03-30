@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (c) 2000, 2001, 2002, 2003, 2004, 2005, 2008, 2009
  *	The President and Fellows of Harvard College.
  *
@@ -27,53 +27,71 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _SYSCALL_H_
-#define _SYSCALL_H_
+#ifndef _MIPS_SPINLOCK_H_
+#define _MIPS_SPINLOCK_H_
 
-#include "opt-A2.h"
-
-struct trapframe; /* from <machine/trapframe.h> */
-
-/*
- * The system call dispatcher.
- */
-
-void syscall(struct trapframe *tf);
-
-/*
- * Support functions.
- */
-
-/* Helper for fork(). You write this. */
-#if OPT_A2
-void enter_forked_process(void *argc1, unsigned long argc2);
-#else
-void enter_forked_process(struct trapframe *tf);
-#endif
-
-/* Enter user mode. Does not return. */
-void enter_new_process(int argc, userptr_t argv, vaddr_t stackptr,
-		       vaddr_t entrypoint);
+#include <cdefs.h>
 
 
-/*
- * Prototypes for IN-KERNEL entry points for system call implementations.
- */
+/* Type of value needed to actually spin on */
+typedef unsigned spinlock_data_t;
 
-int sys_reboot(int code);
-int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
+/* Initializer for use by SPINLOCK_INITIALIZER */
+#define SPINLOCK_DATA_INITIALIZER	0
 
-#ifdef UW
-int sys_write(int fdesc,userptr_t ubuf,unsigned int nbytes,int *retval);
-void sys__exit(int exitcode);
-int sys_getpid(pid_t *retval);
-int sys_waitpid(pid_t pid, userptr_t status, int options, pid_t *retval);
-#endif // UW
+/* Atomic operations on spinlock_data_t */
+void spinlock_data_set(volatile spinlock_data_t *sd, unsigned val);
+spinlock_data_t spinlock_data_get(volatile spinlock_data_t *sd);
+spinlock_data_t spinlock_data_testandset(volatile spinlock_data_t *sd);
 
-#if OPT_A2
-// code you created or modified for ASST2 goes here
-int sys_fork(struct trapframe *tf, pid_t *retval);
-int sys_execv(char *program, char **args);
-#endif // OPT_A2b
+////////////////////////////////////////////////////////////
 
-#endif /* _SYSCALL_H_ */
+SPINLOCK_INLINE
+void
+spinlock_data_set(volatile spinlock_data_t *sd, unsigned val)
+{
+	*sd = val;
+}
+
+SPINLOCK_INLINE
+spinlock_data_t
+spinlock_data_get(volatile spinlock_data_t *sd)
+{
+	return *sd;
+}
+
+SPINLOCK_INLINE
+spinlock_data_t
+spinlock_data_testandset(volatile spinlock_data_t *sd)
+{
+	spinlock_data_t x;
+	spinlock_data_t y;
+
+	/*
+	 * Test-and-set using LL/SC.
+	 *
+	 * Load the existing value into X, and use Y to store 1.
+	 * After the SC, Y contains 1 if the store succeeded,
+	 * 0 if it failed.
+	 *
+	 * On failure, return 1 to pretend that the spinlock
+	 * was already held.
+	 */
+
+	y = 1;
+	__asm volatile(
+		".set push;"		/* save assembler mode */
+		".set mips32;"		/* allow MIPS32 instructions */
+		".set volatile;"	/* avoid unwanted optimization */
+		"ll %0, 0(%2);"		/*   x = *sd */
+		"sc %1, 0(%2);"		/*   *sd = y; y = success? */
+		".set pop"		/* restore assembler mode */
+		: "=r" (x), "+r" (y) : "r" (sd));
+	if (y == 0) {
+		return 1;
+	}
+	return x;
+}
+
+
+#endif /* _MIPS_SPINLOCK_H_ */

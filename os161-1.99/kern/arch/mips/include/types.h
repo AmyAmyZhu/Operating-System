@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (c) 2000, 2001, 2002, 2003, 2004, 2005, 2008, 2009
  *	The President and Fellows of Harvard College.
  *
@@ -27,53 +27,20 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _SYSCALL_H_
-#define _SYSCALL_H_
-
-#include "opt-A2.h"
-
-struct trapframe; /* from <machine/trapframe.h> */
+#ifndef _MIPS_TYPES_H_
+#define _MIPS_TYPES_H_
 
 /*
- * The system call dispatcher.
+ * Machine-dependent types that are *not* made visible to userland.
+ * Those that are made visible are found in kern/machine/types.h.
+ * 32-bit MIPS version.
+ *
+ * (Use the underscore versions of the base type names because this
+ * file is included by types.h before the non-underscore versions are
+ * defined.)
  */
 
-void syscall(struct trapframe *tf);
+typedef __u32 paddr_t;
+typedef __u32 vaddr_t;
 
-/*
- * Support functions.
- */
-
-/* Helper for fork(). You write this. */
-#if OPT_A2
-void enter_forked_process(void *argc1, unsigned long argc2);
-#else
-void enter_forked_process(struct trapframe *tf);
-#endif
-
-/* Enter user mode. Does not return. */
-void enter_new_process(int argc, userptr_t argv, vaddr_t stackptr,
-		       vaddr_t entrypoint);
-
-
-/*
- * Prototypes for IN-KERNEL entry points for system call implementations.
- */
-
-int sys_reboot(int code);
-int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
-
-#ifdef UW
-int sys_write(int fdesc,userptr_t ubuf,unsigned int nbytes,int *retval);
-void sys__exit(int exitcode);
-int sys_getpid(pid_t *retval);
-int sys_waitpid(pid_t pid, userptr_t status, int options, pid_t *retval);
-#endif // UW
-
-#if OPT_A2
-// code you created or modified for ASST2 goes here
-int sys_fork(struct trapframe *tf, pid_t *retval);
-int sys_execv(char *program, char **args);
-#endif // OPT_A2b
-
-#endif /* _SYSCALL_H_ */
+#endif /* _MIPS_TYPES_H_ */

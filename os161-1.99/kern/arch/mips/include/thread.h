@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (c) 2000, 2001, 2002, 2003, 2004, 2005, 2008, 2009
  *	The President and Fellows of Harvard College.
  *
@@ -27,53 +27,22 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _SYSCALL_H_
-#define _SYSCALL_H_
-
-#include "opt-A2.h"
-
-struct trapframe; /* from <machine/trapframe.h> */
-
-/*
- * The system call dispatcher.
- */
-
-void syscall(struct trapframe *tf);
-
-/*
- * Support functions.
- */
-
-/* Helper for fork(). You write this. */
-#if OPT_A2
-void enter_forked_process(void *argc1, unsigned long argc2);
-#else
-void enter_forked_process(struct trapframe *tf);
-#endif
-
-/* Enter user mode. Does not return. */
-void enter_new_process(int argc, userptr_t argv, vaddr_t stackptr,
-		       vaddr_t entrypoint);
+#ifndef _MIPS_THREAD_H_
+#define _MIPS_THREAD_H_
 
 
 /*
- * Prototypes for IN-KERNEL entry points for system call implementations.
+ * Machine-dependent thread bits.
  */
 
-int sys_reboot(int code);
-int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
+#include <setjmp.h>
 
-#ifdef UW
-int sys_write(int fdesc,userptr_t ubuf,unsigned int nbytes,int *retval);
-void sys__exit(int exitcode);
-int sys_getpid(pid_t *retval);
-int sys_waitpid(pid_t pid, userptr_t status, int options, pid_t *retval);
-#endif // UW
+typedef void (*badfaultfunc_t)(void);
 
-#if OPT_A2
-// code you created or modified for ASST2 goes here
-int sys_fork(struct trapframe *tf, pid_t *retval);
-int sys_execv(char *program, char **args);
-#endif // OPT_A2b
+struct thread_machdep {
+	badfaultfunc_t tm_badfaultfunc;	/* fault hook used by copyin/out */
+	jmp_buf tm_copyjmp;		/* longjmp area used by copyin/out */
+};
 
-#endif /* _SYSCALL_H_ */
+
+#endif /* _MIPS_THREAD_H_ */
