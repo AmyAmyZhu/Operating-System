@@ -119,7 +119,7 @@ getppages(unsigned long npages)
                         }
                     }
                 } else {
-                    staringInt = i;
+                    startingInt = i;
                     foundArea = true;
                 }
             }
