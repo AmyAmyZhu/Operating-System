@@ -95,7 +95,7 @@ paddr_t
 getppages(unsigned long npages)
 {
 #if OPT_A3
-    paddr addr;
+    paddr_t addr;
     spinlock_acquire(&stealmem_lock);
     if(coreMade){
         int pages = (int)npages;
@@ -111,7 +111,7 @@ getppages(unsigned long npages)
                             curCount++;
                             if(curCount == pages){
                                 foundArea = true;
-                                staringInt = i;
+                                startingInt = i;
                             }
                         } else {
                             i += curCount;
@@ -218,6 +218,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	uint32_t ehi, elo;
 	struct addrspace *as;
 	int spl;
+#if OPT_A3
+    bool insideText = false;
+#endif// OPT_A3
 
 	faultaddress &= PAGE_FRAME;
 
@@ -414,9 +417,9 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
         as->as_writeable = 0;
     }
     if(executable){
-        as->as_excutable = 1;
+        as->as_executable = 1;
     } else {
-        as->as_excutable = 0;
+        as->as_executable = 0;
     }
 #else
 	(void)readable;
