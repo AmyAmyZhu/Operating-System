@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include <opt-A3.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <lib.h>
@@ -51,9 +52,41 @@
  */
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
+#if OPT_A3
+bool coreMade = false;
+struct coremap {
+    paddr_t adr;
+    bool inUse;
+    bool contiguous;
+};
+struct coremap *coremap;
+int totalFrames;
+#endif // OPT_A3
+
 void
 vm_bootstrap(void)
 {
+#if OPT_A3
+    paddr_t lo;
+    paddr_t hi;
+    ram_getsize(&lo, &hi);
+    coremap = (struct coremap *)PADDR_TO_KVADDR(lo);
+    int frames = (hi-lo)/PAGE_SIZE;
+    lo += frames*(sizeof(struct coremap));
+    while(lo%PAGE_SIZE != 0){
+        lo += 1;
+    }
+    frames = (hi-lo)/PAGE_SIZE;
+    totalFrames = frames;
+    paddr_t curLo = lo;
+    for(int i = 0; i < frames; i++){
+        coremap[i].adr = curLo;
+        coremap[i].inUse = false;
+        coremap[i].contiguous = false;
+        curLo += PAGE_SIZE;
+    }
+    coreMade = true;
+#endif // OPT_A3
 	/* Do nothing. */
 }
 
@@ -61,6 +94,54 @@ static
 paddr_t
 getppages(unsigned long npages)
 {
+#if OPT_A3
+    paddr addr;
+    spinlock_acquire(&stealmem_lock);
+    if(coreMade){
+        int pages = (int)npages;
+        bool foundArea = false;
+        int startingInt;
+        for(int i = 0; i < totalFrames; i++){
+            if(foundArea == true) break;
+            if(coremap[i].inUse == false){
+                int curCount = 1;
+                if(pages > 1){
+                    for(int j = i+1; j < i+pages; j++){
+                        if(coremap[j].inUse == false){
+                            curCount++;
+                            if(curCount == pages){
+                                foundArea = true;
+                                staringInt = i;
+                            }
+                        } else {
+                            i += curCount;
+                            break;
+                        }
+                    }
+                } else {
+                    staringInt = i;
+                    foundArea = true;
+                }
+            }
+        }
+        if(foundArea == true){
+            for(int i = 0; i < pages; i++){
+                coremap[staringInt+i].inUse = true;
+                if(i == pages-1){
+                    coremap[staringInt+i].contiguous = false;
+                } else {
+                    coremap[staringInt+i].contiguous = true;
+                }
+            }
+            addr = coremap[staringInt].adr;
+        } else {
+            spinlock_release(&stealmem_lock);
+            kprintf("outa memory allocating frames\n");
+        }
+    } else {
+        addr = ram_stealmem(npages);
+    }
+#else
 	paddr_t addr;
 
 	spinlock_acquire(&stealmem_lock);
@@ -69,6 +150,9 @@ getppages(unsigned long npages)
 	
 	spinlock_release(&stealmem_lock);
 	return addr;
+#endif // OPT_A3
+    spinlock_release(&stealmem_lock);
+    return addr;
 }
 
 /* Allocate/free some kernel-space virtual pages */
@@ -87,8 +171,29 @@ void
 free_kpages(vaddr_t addr)
 {
 	/* nothing - leak the memory. */
-
+#if OPT_A3
+    spinlock_acquire(&stealmem_lock);
+    if(coreMade == true) {
+        if(addr == 0){
+            spinlock_release(&stealmem_lock);
+            kprintf("freeing error");
+            return;
+        }
+        bool foundIt = false;
+        for(int i = 0; i < totalFrames; i++){
+            if(coremap[i].adr == addr){
+                foundIt = true;
+            }
+            if(foundIt == true) {
+                coremap[i].inUse = false;
+                if(coremap[i].contiguous == false) break;
+            }
+        }
+    }
+    spinlock_release(&stealmem_lock);
+#else
 	(void)addr;
+#endif // OPT_A3
 }
 
 void
@@ -120,8 +225,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
+#if OPT_A3
+            return EINVAL;
+#else
 		/* We always create pages read-write, so we can't get this */
 		panic("dumbvm: got VM_FAULT_READONLY\n");
+#endif // OPT_A3
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
@@ -195,14 +304,26 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
+#if OPT_A3
+        if(insideText == true && as->as_loaded == true) elo &= ~TLBLO_DIRTY;
+#endif //OPT_A3
 		tlb_write(ehi, elo, i);
 		splx(spl);
 		return 0;
 	}
 
+#if OPT_A3
+    ehi = faultaddress;
+    elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+    if(insideText == true && as->as_loaded == true) elo &= ~TLBLO_DIRTY;
+    tlb_random(ehi, elo);
+    splx(spl);
+    return 0;
+#else
 	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
 	splx(spl);
 	return EFAULT;
+#endif // OPT_A3
 }
 
 struct addrspace *
@@ -227,6 +348,11 @@ as_create(void)
 void
 as_destroy(struct addrspace *as)
 {
+#if OPT_A3
+    free_kpages(as->as_pbase1);
+    free_kpages(as->as_pbase2);
+    free_kpages(as->as_stackpbase);
+#endif // OPT_A3
 	kfree(as);
 }
 
@@ -276,9 +402,27 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 	npages = sz / PAGE_SIZE;
 
 	/* We don't use these - all pages are read-write */
+#if OPT_A3
+    if(readable){
+        as->as_readable = 1;
+    } else {
+        as->as_readable = 0;
+    }
+    if(writeable){
+        as->as_writeable = 1;
+    } else {
+        as->as_writeable = 0;
+    }
+    if(executable){
+        as->as_excutable = 1;
+    } else {
+        as->as_excutable = 0;
+    }
+#else
 	(void)readable;
 	(void)writeable;
 	(void)executable;
+#endif // OPT_A3
 
 	if (as->as_vbase1 == 0) {
 		as->as_vbase1 = vaddr;
@@ -338,7 +482,11 @@ as_prepare_load(struct addrspace *as)
 int
 as_complete_load(struct addrspace *as)
 {
+#if OPT_A3
+    as->as_loaded = true;
+#else
 	(void)as;
+#endif // OPT_A3
 	return 0;
 }
 
