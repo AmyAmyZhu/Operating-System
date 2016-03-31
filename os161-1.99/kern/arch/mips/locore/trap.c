@@ -114,6 +114,7 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	/*
 	 * You will probably want to change this.
 	 */
+    /*
 #if OPT_A3
     (void)epc;
     (void)vaddr;
@@ -126,7 +127,7 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
     proc_destroy(p);
     thread_exit();
     panic("Should not return\n");
-#endif // OPT_A3
+#endif // OPT_A3*/
 }
 
 /*
