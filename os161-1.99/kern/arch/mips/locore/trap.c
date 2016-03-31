@@ -114,7 +114,12 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	/*
 	 * You will probably want to change this.
 	 */
+    
+    (void)epc;
+    (void)vaddr;
+    
     /*
+     
 #if OPT_A3
     (void)epc;
     (void)vaddr;
