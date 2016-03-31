@@ -27,6 +27,7 @@
  * SUCH DAMAGE.
  */
 
+#include <opt-A3.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <lib.h>
@@ -37,13 +38,10 @@
 #include <mips/tlb.h>
 #include <addrspace.h>
 #include <vm.h>
-#include <opt-A3.h>
 
 /*
  * Dumb MIPS-only "VM system" that is intended to only be just barely
- * enough to struggle off the ground. You should replace all of this
- * code while doing the VM assignment. In fact, starting in that
- * assignment, this file is not included in your kernel!
+ * enough to struggle off the ground.
  */
 
 /* under dumbvm, always have 48k of user stack */
@@ -54,184 +52,148 @@
  */
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
-bool coreMade=false;//this is necessary because kernel needs to be allocated before coremap and is done using stealmem
-
+#if OPT_A3
+bool coreMade = false;
 struct coremap {
     paddr_t adr;
     bool inUse;
     bool contiguous;
 };
-
 struct coremap *coremap;
 int totalFrames;
+#endif // OPT_A3
 
 void
 vm_bootstrap(void)
 {
-	#if OPT_A3
-	paddr_t lo;
-	paddr_t hi;
-	ram_getsize(&lo, &hi);//sets lo and hi to the correct spots in memory starting at first free spot
-	
-	    //kprintf("hi at %u\n", hi);
-	    //kprintf("lo at %u\n", lo);
-	//set up the coremap
-	coremap = (struct coremap *)PADDR_TO_KVADDR(lo);
-	//going to be greedy here
-	//assume number of frames WITHOUT coremap first
-	int frames = (hi-lo)/PAGE_SIZE;
-	//now use that number to find necessary space for coremap
-	lo += frames*(sizeof(struct coremap));
-	//almost forgot to page align it!! a simple loop to realign. Easiest way to see whats happening
-	while(lo %PAGE_SIZE !=0) {
-	    lo+=1;
-	}
-	//update the number of frames for our new size
-	frames = (hi-lo)/PAGE_SIZE;
-	totalFrames=frames;//global variable used when dealing with coremap stuff later
-	//now we can setup our coremap
-	paddr_t curLo =lo;
-	for (int i=0; i<frames; i++) {
-	    coremap[i].adr =curLo;
-	    coremap[i].inUse = false;
-	    coremap[i].contiguous = false;
-	    curLo += PAGE_SIZE;
-	}
-	coreMade=true;
-	//kprintf("done coremap\n");
-	#endif
+#if OPT_A3
+    paddr_t lo;
+    paddr_t hi;
+    ram_getsize(&lo, &hi);
+    coremap = (struct coremap *)PADDR_TO_KVADDR(lo);
+    int frames = (hi-lo)/PAGE_SIZE;
+    lo += frames*(sizeof(struct coremap));
+    while(lo%PAGE_SIZE != 0){
+        lo += 1;
+    }
+    frames = (hi-lo)/PAGE_SIZE;
+    totalFrames = frames;
+    paddr_t curLo = lo;
+    for(int i = 0; i < frames; i++){
+        coremap[i].adr = curLo;
+        coremap[i].inUse = false;
+        coremap[i].contiguous = false;
+        curLo += PAGE_SIZE;
+    }
+    coreMade = true;
+#endif // OPT_A3
+	/* Do nothing. */
 }
-
-
 
 static
 paddr_t
 getppages(unsigned long npages)
 {
-	paddr_t addr;
-
-	spinlock_acquire(&stealmem_lock);
-    #if OPT_A3
-    //pretty straightforward. We just need to consider if its kernel initializing or coremap is already set
-    //and this is some other page we are dealing with
-    if(coreMade) {
-        //this is where the coremap magic happens
-        int pages = (int)npages;//so I dont have to constantly cast stuff
-        //kprintf("allocating %d pages\n",pages);
-        //everything needs to be contiguous so make sure you accomadate for that
-        bool foundArea=false;
+#if OPT_A3
+    paddr_t addr;
+    spinlock_acquire(&stealmem_lock);
+    if(coreMade){
+        int pages = (int)npages;
+        bool foundArea = false;
         int startingInt;
-        for(int i=0; i<totalFrames; i++) {
-            if(foundArea==true) {
-                break;
-            }
-            if(coremap[i].inUse==false) {
-                int curCount=1;
-                if(pages>1) {//check for contiguous block
-                    for(int j=i+1;j<i+pages;j++) {
-                        if(coremap[j].inUse==false){
+        for(int i = 0; i < totalFrames; i++){
+            if(foundArea == true) break;
+            if(coremap[i].inUse == false){
+                int curCount = 1;
+                if(pages > 1){
+                    for(int j = i+1; j < i+pages; j++){
+                        if(coremap[j].inUse == false){
                             curCount++;
-                            if(curCount==pages){
-                                foundArea=true;
-                                startingInt=i;
+                            if(curCount == pages){
+                                foundArea = true;
+                                startingInt = i;
                             }
                         } else {
-                            i+=curCount;
+                            i += curCount;
                             break;
                         }
                     }
                 } else {
-                    startingInt=i;
-                    foundArea=true;
+                    startingInt = i;
+                    foundArea = true;
                 }
             }
         }
-        
-        if(foundArea==true) {
-            for(int i=0; i<pages; i++) {
-                coremap[startingInt+i].inUse=true;
-                if(i==pages-1) {
-                    //kprintf("final page allocated at %d\n", i+1);
-                    coremap[startingInt+i].contiguous=false;//final page to be allocated
+        if(foundArea == true){
+            for(int i = 0; i < pages; i++){
+                coremap[startingInt+i].inUse = true;
+                if(i == pages-1){
+                    coremap[startingInt+i].contiguous = false;
                 } else {
-                    coremap[startingInt+i].contiguous=true;
+                    coremap[startingInt+i].contiguous = true;
                 }
             }
-            addr=coremap[startingInt].adr;
+            addr = coremap[startingInt].adr;
         } else {
-	        spinlock_release(&stealmem_lock);
-	        kprintf("outa memory allocating frames\n");
-            return ENOMEM;//no space in coremap, outa memory
+            spinlock_release(&stealmem_lock);
+            kprintf("outa memory allocating frames\n");
         }
     } else {
-        addr=ram_stealmem(npages);
+        addr = ram_stealmem(npages);
     }
-    #else
+#else
+	paddr_t addr;
+
+	spinlock_acquire(&stealmem_lock);
+
 	addr = ram_stealmem(npages);
-	#endif
+	
 	spinlock_release(&stealmem_lock);
 	return addr;
+#endif // OPT_A3
+    spinlock_release(&stealmem_lock);
+    return addr;
 }
 
 /* Allocate/free some kernel-space virtual pages */
 vaddr_t 
 alloc_kpages(int npages)
 {
-    //kprintf("allocating kpages\n");
 	paddr_t pa;
 	pa = getppages(npages);
 	if (pa==0) {
 		return 0;
 	}
-	if(pa==ENOMEM) {//TODO test this
-	    return ENOMEM;
-	}
-    //kprintf("done allocating kpages\n");
 	return PADDR_TO_KVADDR(pa);
 }
 
 void 
 free_kpages(vaddr_t addr)
 {
-    #if OPT_A3
-    //kprintf("freeing kpages\n");
-    spinlock_acquire(&stealmem_lock);//better grab this, dont want to try freeing stuff at same time
-    if(coreMade==true){//not sure if free_kpages is run before coremap, but just incase keep this check here
-        //convert addr since we want a paddr
-        //check that the address is legit!
-        if(addr==0) {
+	/* nothing - leak the memory. */
+#if OPT_A3
+    spinlock_acquire(&stealmem_lock);
+    if(coreMade == true) {
+        if(addr == 0){
             spinlock_release(&stealmem_lock);
-            //not sure what error would fit, but we definitely cant be accessing addr 0 as it has important stuff
-            //return EINVAL;//goto error for random stuff (invalid argument)
             kprintf("freeing error");
             return;
         }
-        
-        //now lets search for it in coremap
-        bool foundIt=false;
-        for(int i=0; i<totalFrames; i++) {//probably mathematical ways to find it in O(1) but this 100% works
-        //kprintf("core address %u\n", coremap[i].adr);
-            if(coremap[i].adr==addr) {
-                //kprintf("found starting address in coremap\n");
-                foundIt=true;
+        bool foundIt = false;
+        for(int i = 0; i < totalFrames; i++){
+            if(coremap[i].adr == addr){
+                foundIt = true;
             }
-            if(foundIt==true){
-                //kprintf("found it at %d\n",i);
-                coremap[i].inUse=false;
-                if(coremap[i].contiguous==false) {
-                    //kprintf("not contiguous\n");
-                    break;//no more to de-allocate
-                }
+            if(foundIt == true) {
+                coremap[i].inUse = false;
+                if(coremap[i].contiguous == false) break;
             }
         }
     }
-    //kprintf("done freeing kpages\n");
     spinlock_release(&stealmem_lock);
-    #else
-	/* nothing - leak the memory. */
-
+#else
 	(void)addr;
-	#endif
+#endif // OPT_A3
 }
 
 void
@@ -256,7 +218,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	uint32_t ehi, elo;
 	struct addrspace *as;
 	int spl;
-	bool insideText=false;
+#if OPT_A3
+    bool insideText = false;
+#endif// OPT_A3
 
 	faultaddress &= PAGE_FRAME;
 
@@ -264,13 +228,12 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	switch (faulttype) {
 	    case VM_FAULT_READONLY:
-	    #if OPT_A3
-	        //can handle having readonly now!
-	        return EINVAL; //a general purpose error since we dont have anything more specific
-	    #else
+#if OPT_A3
+            return EINVAL;
+#else
 		/* We always create pages read-write, so we can't get this */
 		panic("dumbvm: got VM_FAULT_READONLY\n");
-		#endif
+#endif // OPT_A3
 	    case VM_FAULT_READ:
 	    case VM_FAULT_WRITE:
 		break;
@@ -319,8 +282,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	if (faultaddress >= vbase1 && faultaddress < vtop1) {
 		paddr = (faultaddress - vbase1) + as->as_pbase1;
-		//according to notes this should be the text section
-		insideText=true;
 	}
 	else if (faultaddress >= vbase2 && faultaddress < vtop2) {
 		paddr = (faultaddress - vbase2) + as->as_pbase2;
@@ -346,37 +307,26 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		ehi = faultaddress;
 		elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
 		DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
-	    #if OPT_A3
-	        if(insideText==true && as->as_loaded==true) {//check if as is fully loaded and we are in the text section
-	            //kprintf("dirt bit on now\n");
-	            elo &= ~TLBLO_DIRTY; //turn off as described in notes
-	        }
-	    #endif
+#if OPT_A3
+        if(insideText == true && as->as_loaded == true) elo &= ~TLBLO_DIRTY;
+#endif //OPT_A3
 		tlb_write(ehi, elo, i);
 		splx(spl);
 		return 0;
 	}
 
-	
-	
-	#if OPT_A3
-	    //kprintf("randomizing!\n");
-	    //use the above for loop of writing an address for inspiration
-	    ehi = faultaddress;
-	    elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-	    if(insideText==true && as->as_loaded==true) {//check if as is fully loaded and we are in the text section
-	            //kprintf("dirt bit on now\n");
-	       elo &= ~TLBLO_DIRTY; //turn off as described in notes
-	    }
-	    //from tlb.h
-	    tlb_random(ehi, elo);
-	    splx(spl);
-	    return 0;
-	#else    
+#if OPT_A3
+    ehi = faultaddress;
+    elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+    if(insideText == true && as->as_loaded == true) elo &= ~TLBLO_DIRTY;
+    tlb_random(ehi, elo);
+    splx(spl);
+    return 0;
+#else
 	kprintf("dumbvm: Ran out of TLB entries - cannot handle page fault\n");
 	splx(spl);
 	return EFAULT;
-	#endif
+#endif // OPT_A3
 }
 
 struct addrspace *
@@ -394,9 +344,6 @@ as_create(void)
 	as->as_pbase2 = 0;
 	as->as_npages2 = 0;
 	as->as_stackpbase = 0;
-	#if OPT_A3
-	as->as_loaded=false;
-	#endif
 
 	return as;
 }
@@ -404,17 +351,11 @@ as_create(void)
 void
 as_destroy(struct addrspace *as)
 {
-    #if OPT_A3
-        //number of pages is stored
-    //for(unsigned i=0; i<as->as_npages1; i++) {
-        //now free 
-    //}
-    //kprintf("1 pages is %d \n", as->as_npages1);
+#if OPT_A3
     free_kpages(as->as_pbase1);
-    //kprintf("2 pages is %d \n", as->as_npages2);
     free_kpages(as->as_pbase2);
     free_kpages(as->as_stackpbase);
-    #endif
+#endif // OPT_A3
 	kfree(as);
 }
 
@@ -464,30 +405,27 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 	npages = sz / PAGE_SIZE;
 
 	/* We don't use these - all pages are read-write */
-    #if OPT_A3
-    if(readable) {
-        //kprintf("setting readable\n");
-        as->as_readable=1;
+#if OPT_A3
+    if(readable){
+        as->as_readable = 1;
     } else {
-        as->as_readable=0;
+        as->as_readable = 0;
     }
-    if(writeable) {
-        //kprintf("setting writeable\n");
-        as->as_writeable=1;
+    if(writeable){
+        as->as_writeable = 1;
     } else {
-        as->as_writeable=0;
+        as->as_writeable = 0;
     }
-    if(executable) {
-        //kprintf("setting executable\n");
-        as->as_executable=1;
+    if(executable){
+        as->as_executable = 1;
     } else {
-        as->as_executable=0;
+        as->as_executable = 0;
     }
-    #else
+#else
 	(void)readable;
 	(void)writeable;
 	(void)executable;
-    #endif
+#endif // OPT_A3
 
 	if (as->as_vbase1 == 0) {
 		as->as_vbase1 = vaddr;
@@ -547,11 +485,11 @@ as_prepare_load(struct addrspace *as)
 int
 as_complete_load(struct addrspace *as)
 {
-    #if OPT_A3
-        as->as_loaded=true;
-    #else
+#if OPT_A3
+    as->as_loaded = true;
+#else
 	(void)as;
-	#endif
+#endif // OPT_A3
 	return 0;
 }
 
