@@ -27,8 +27,6 @@
  * SUCH DAMAGE.
  */
 
-
-
 #include <opt-A3.h>
 #include <types.h>
 #include <signal.h>
