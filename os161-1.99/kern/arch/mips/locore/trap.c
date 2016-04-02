@@ -114,20 +114,25 @@ kill_curthread(vaddr_t epc, unsigned code, vaddr_t vaddr)
 	/*
 	 * You will probably want to change this.
 	 */
+    
+    (void)epc;
+    (void)vaddr;
+    
+    /*
      
 #if OPT_A3
     (void)epc;
     (void)vaddr;
     struct addrspace *as;
-    struct proc *temp = curproc;
+    struct proc *p = curproc;
     as_deactivate();
     as = curproc_setas(NULL);
     as_destroy(as);
     proc_remthread(curthread);
-    proc_destroy(temp);
+    proc_destroy(p);
     thread_exit();
-    panic("No return here.\n");
-#endif // OPT_A3
+    panic("Should not return\n");
+#endif // OPT_A3*/
 }
 
 /*
