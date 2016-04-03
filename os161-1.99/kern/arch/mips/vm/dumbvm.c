@@ -282,7 +282,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         ehi = faultaddress;
         elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
         DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
-        if(checkinside == true && as->as_load == true) elo &= ~TLBLO_DIRTY;
+        if(checkinside == true && as->as_loaded == true) elo &= ~TLBLO_DIRTY;
         tlb_write(ehi, elo, i);
         splx(spl);
         return 0;
@@ -290,7 +290,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     
     ehi = faultaddress;
     elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-    if(checkinside == true && as->as_load == true) elo &= ~TLBLO_DIRTY;
+    if(checkinside == true && as->as_loaded == true) elo &= ~TLBLO_DIRTY;
     tlb_random(ehi, elo);
     splx(spl);
     return 0;
@@ -304,7 +304,7 @@ as_create(void)
     if (as==NULL) {
         return NULL;
     }
-    as->as_load = false;
+    as->as_loaded = false;
     as->as_vbase1 = 0;
     as->as_pbase1 = 0;
     as->as_npages1 = 0;
