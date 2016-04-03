@@ -27,9 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#include <opt-A3.h>
-#include <proc.h>
-#include <addrspace.h>
 #include <types.h>
 #include <signal.h>
 #include <lib.h>
@@ -42,7 +39,9 @@
 #include <vm.h>
 #include <mainbus.h>
 #include <syscall.h>
-
+#include <proc.h>
+#include <addrspace.h>
+#include <opt-A3.h>
 
 /* in exception.S */
 extern void asm_usermode(struct trapframe *tf);
