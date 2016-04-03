@@ -300,11 +300,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     }
     
 #if OPT_A3
-   // ehi = faultaddress;
-    //elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-    //if(check == true && as->as_loaded == true){
-      //  elo &= ~TLBLO_DIRTY;
-    //}
+    ehi = faultaddress;
+    elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+    if(check == true && as->as_loaded == true){
+        elo &= ~TLBLO_DIRTY;
+    }
     tlb_random(ehi, elo);
     splx(spl);
     return 0;
