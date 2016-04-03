@@ -123,12 +123,10 @@ getppages(unsigned long npages)
         if(found){
             addr = coremap[cc].curAddr;
             for(int i = 0; i < pages; i++){
-                coremap[cc+i].use = true;
-                if(i == pages-1){
-                    coremap[cc+i].cont = false;
-                }else{
-                    coremap[cc+i].cont = true;
-                }
+                int ccPlus = cc+i;
+                coremap[ccPlus].cont = true;
+                coremap[ccPlus].use = true;
+                if(i == pages-1) coremap[ccPlus].cont = false;
             }
         }
     } else {
@@ -159,7 +157,7 @@ free_kpages(vaddr_t addr)
 #if OPT_A3
     spinlock_acquire(&stealmem_lock);
     bool found = false;
-    if(coreMade == true){
+    if(coreMade){
         if(addr == 0){
             spinlock_release(&stealmem_lock);
             return;
@@ -169,7 +167,7 @@ free_kpages(vaddr_t addr)
         if(coremap[i].curAddr == addr){
             found = true;
         }
-        if(found == true){
+        if(found){
             coremap[i].use = false;
             if(coremap[i].cont == false) break;
         }
@@ -236,6 +234,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         return EFAULT;
     }
     
+#if OPT_A3
+    bool check = false;
+#endif // OPT_A3
+    
     /* Assert that the address space has been set up properly. */
     KASSERT(as->as_vbase1 != 0);
     KASSERT(as->as_pbase1 != 0);
@@ -257,13 +259,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     stackbase = USERSTACK - DUMBVM_STACKPAGES * PAGE_SIZE;
     stacktop = USERSTACK;
     
-#if OPT_A3
-    bool check = false;
-#endif // OPT_A3
-    
     if (faultaddress >= vbase1 && faultaddress < vtop1) {
         paddr = (faultaddress - vbase1) + as->as_pbase1;
+#if OPT_A3
         check = true;
+#endif // OPT_A3
     }
     else if (faultaddress >= vbase2 && faultaddress < vtop2) {
         paddr = (faultaddress - vbase2) + as->as_pbase2;
@@ -300,11 +300,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     }
     
 #if OPT_A3
-    ehi = faultaddress;
-    elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-    if(check == true && as->as_loaded == true){
-        elo &= ~TLBLO_DIRTY;
-    }
+   // ehi = faultaddress;
+    //elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
+    //if(check == true && as->as_loaded == true){
+      //  elo &= ~TLBLO_DIRTY;
+    //}
     tlb_random(ehi, elo);
     splx(spl);
     return 0;
