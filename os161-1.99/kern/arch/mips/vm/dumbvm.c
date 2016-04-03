@@ -303,7 +303,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     if(check == true && as->as_loaded == true){
         elo &= ~TLBLO_DIRTY;
     }
-    tlb_random(eho, elo);
+    tlb_random(ehi, elo);
     splx(spl);
     return 0;
 #endif // OPT_A3
