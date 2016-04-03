@@ -34,7 +34,7 @@
  * Address space structure and operations.
  */
 
-
+#include <opt-A3.h>
 #include <vm.h>
 
 struct vnode;
