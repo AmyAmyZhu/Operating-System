@@ -27,7 +27,6 @@
  * SUCH DAMAGE.
  */
 
-#include <opt-A3.h>
 #include <types.h>
 #include <kern/errno.h>
 #include <lib.h>
@@ -52,37 +51,36 @@
  */
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
-#if OPT_A3
-int frame = 0;
-struct coremap{
-    paddr_t curAddr;
-    bool use;
-    bool cont;
+int total = 0;
+bool check = false;
+struct coremap {
+    paddr_t adr;
+    bool inuse;
+    bool contiguous;
 };
+
 struct coremap *coremap;
-bool coreMade = false;
-#endif // OPT_A3
 
 void
 vm_bootstrap(void)
 {
     /* Do nothing. */
-#if OPT_A3
+    check = true;
     paddr_t lo, hi;
-    coreMade = true;
     ram_getsize(&lo, &hi);
     coremap = (struct coremap *)PADDR_TO_KVADDR(lo);
-    frame = (hi-lo)/PAGE_SIZE;
-    lo = frame*(sizeof(struct coremap)) + lo;
-    while(lo % PAGE_SIZE != 0) lo++;
-    paddr_t temp = lo;
-    for(int i = 0; i < frame; i++){
-        coremap[i].curAddr = temp;
-        temp = PAGE_SIZE + temp;
-        coremap[i].use = false;
-        coremap[i].cont = false;
+    total = (hi-lo)/PAGE_SIZE;
+    lo += total*(sizeof(struct coremap));
+    while(lo % PAGE_SIZE != 0){
+        lo++;
     }
-#endif //OPT_A3
+    paddr_t current = lo;
+    for(int i = 0; i < total; i++){
+        coremap[i].adr = current;
+        coremap[i].inuse = false;
+        coremap[i].contiguous = false;
+        current += PAGE_SIZE;
+    }
 }
 
 static
@@ -92,49 +90,48 @@ getppages(unsigned long npages)
     paddr_t addr;
     
     spinlock_acquire(&stealmem_lock);
-#if OPT_A3
-    int cc;
-    if(coreMade){
-        bool found = false;
+    
+    int temp;
+    if(check == true){
         int pages = (int)npages;
-        for(int i = 0; i < frame; i++){
-            if(found) break;
-            if(coremap[i].use == false){
-                int count = 1;
+        bool find = false;
+        for(int i = 0; i < total; i++){
+            if(find == true) break;
+            if(coremap[i].inuse == false){
+                int current = 1;
                 if(pages > 1){
                     for(int j = i+1; j < i+pages; j++){
-                        if(coremap[j].use == false){
-                            count++;
-                            if(count == pages){
-                                found = true;
-                                cc = i;
+                        if(coremap[j].inuse == false){
+                            current++;
+                            if(current == pages){
+                                find = true;
+                                temp = i;
                             }
                         } else {
-                            i += count;
+                            i += current;
                             break;
                         }
                     }
                 } else {
-                    cc = i;
-                    found = true;
+                    temp = i;
+                    find = true;
                 }
             }
         }
-        if(found){
-            addr = coremap[cc].curAddr;
+        if(find == true){
+            addr = coremap[temp].adr;
             for(int i = 0; i < pages; i++){
-                coremap[cc+i].use = true;
-                if(i == pages-1){
-                    coremap[cc+i].cont = false;
-                }else{
-                    coremap[cc+i].cont = true;
+                coremap[temp+i].inuse = true;
+                if(pages-1 == i){
+                    coremap[temp+i].contiguous = false;
+                } else {
+                    coremap[temp+i].contiguous = true;
                 }
             }
         }
     } else {
-    addr = ram_stealmem(npages);
+        addr = ram_stealmem(npages);
     }
-#endif // OPT_A3
     
     spinlock_release(&stealmem_lock);
     return addr;
@@ -156,26 +153,26 @@ void
 free_kpages(vaddr_t addr)
 {
     /* nothing - leak the memory. */
-#if OPT_A3
+    
     spinlock_acquire(&stealmem_lock);
-    bool found = false;
-    if(coreMade == true){
+    bool find = false;
+
+    if(check == true){
         if(addr == 0){
             spinlock_release(&stealmem_lock);
             return;
         }
-    }
-    for(int i = 0; i < frame; i++){
-        if(coremap[i].curAddr == addr){
-            found = true;
-        }
-        if(found == true){
-            coremap[i].use = false;
-            if(coremap[i].cont == false) break;
+        for(int i = 0; i < total; i++){
+            if(coremap[i].adr == addr){
+                find = true;
+            }
+            if(find == true){
+                coremap[i].inuse = false;
+                if(coremap[i].contiguous == false) break;
+            }
         }
     }
     spinlock_release(&stealmem_lock);
-#endif // OPT_A3
 }
 
 void
@@ -190,6 +187,8 @@ vm_tlbshootdown(const struct tlbshootdown *ts)
     (void)ts;
     panic("dumbvm tried to do tlb shootdown?!\n");
 }
+
+
 
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
@@ -207,7 +206,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     
     switch (faulttype) {
         case VM_FAULT_READONLY:
-            /* We always create pages read-write, so we can't get this */
             return EINVAL;
         case VM_FAULT_READ:
         case VM_FAULT_WRITE:
@@ -234,10 +232,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         return EFAULT;
     }
     
-#if OPT_A3
-    bool check = false;
-#endif // OPT_A3
-    
     /* Assert that the address space has been set up properly. */
     KASSERT(as->as_vbase1 != 0);
     KASSERT(as->as_pbase1 != 0);
@@ -259,9 +253,10 @@ vm_fault(int faulttype, vaddr_t faultaddress)
     stackbase = USERSTACK - DUMBVM_STACKPAGES * PAGE_SIZE;
     stacktop = USERSTACK;
     
+    bool checkinside = false;
     if (faultaddress >= vbase1 && faultaddress < vtop1) {
         paddr = (faultaddress - vbase1) + as->as_pbase1;
-        check = true;
+        checkinside = true;
     }
     else if (faultaddress >= vbase2 && faultaddress < vtop2) {
         paddr = (faultaddress - vbase2) + as->as_pbase2;
@@ -287,27 +282,20 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         ehi = faultaddress;
         elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
         DEBUG(DB_VM, "dumbvm: 0x%x -> 0x%x\n", faultaddress, paddr);
-#if OPT_A3
-        if(check == true && as->as_loaded == true){
-            elo &= ~TLBLO_DIRTY;
-        }
-#endif // OPT_A3
+        if(checkinside == true && as->as_load == true) elo &= ~TLBLO_DIRTY;
         tlb_write(ehi, elo, i);
         splx(spl);
         return 0;
     }
     
-#if OPT_A3
     ehi = faultaddress;
     elo = paddr | TLBLO_DIRTY | TLBLO_VALID;
-    if(check == true && as->as_loaded == true){
-        elo &= ~TLBLO_DIRTY;
-    }
+    if(checkinside == true && as->as_load == true) elo &= ~TLBLO_DIRTY;
     tlb_random(ehi, elo);
     splx(spl);
     return 0;
-#endif // OPT_A3
 }
+
 
 struct addrspace *
 as_create(void)
@@ -316,7 +304,7 @@ as_create(void)
     if (as==NULL) {
         return NULL;
     }
-    
+    as->as_load = false;
     as->as_vbase1 = 0;
     as->as_pbase1 = 0;
     as->as_npages1 = 0;
@@ -324,24 +312,18 @@ as_create(void)
     as->as_pbase2 = 0;
     as->as_npages2 = 0;
     as->as_stackpbase = 0;
-#if OPT_A3
-    as->as_loaded = false;
     as->as_readable = false;
     as->as_writeable = false;
     as->as_executable = false;
-#endif // OPT_A3
-    
     return as;
 }
 
 void
 as_destroy(struct addrspace *as)
 {
-#if OPT_A3
-    free_kpages(as->as_pbase2);
     free_kpages(as->as_pbase1);
+    free_kpages(as->as_pbase2);
     free_kpages(as->as_stackpbase);
-#endif // OPT_A3
     kfree(as);
 }
 
@@ -391,17 +373,15 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
     npages = sz / PAGE_SIZE;
     
     /* We don't use these - all pages are read-write */
-#if OPT_A3
-    if(readable != 0){
+    if(readable){
         as->as_readable = true;
     }
-    if(writeable != 0){
+    if(writeable){
         as->as_writeable = true;
     }
-    if(executable != 0){
+    if(executable){
         as->as_executable = true;
     }
-#endif // OPT_A3
     
     if (as->as_vbase1 == 0) {
         as->as_vbase1 = vaddr;
@@ -461,7 +441,7 @@ as_prepare_load(struct addrspace *as)
 int
 as_complete_load(struct addrspace *as)
 {
-    (void)as;
+    as->as_load = true;
     return 0;
 }
 
