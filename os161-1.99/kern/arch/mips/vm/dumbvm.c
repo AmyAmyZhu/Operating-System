@@ -122,10 +122,13 @@ getppages(unsigned long npages)
         }
         if(found){
             addr = coremap[cc].curAddr;
-            if(i == pages-1){
-                coremap[cc+i].cont = false;
-            }else{
-                coremap[cc+i].cont = true;
+            for(int i = 0; i < pages; i++){
+                coremap[cc+i].use = true;
+                if(i == pages-1){
+                    coremap[cc+i].cont = false;
+                }else{
+                    coremap[cc+i].cont = true;
+                }
             }
         }
     } else {
