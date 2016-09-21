@@ -1,1 +1,2 @@
-# cs350-os161
+# Operating System
+This is a step-by-step completing functions of a simple operating system.
